@@ -133,6 +133,7 @@ export function ContentList({
           </div>
         ) : (
           <EmptyState
+            headingAs="h2"
             icon={page.icon}
             title={query || category ? 'Không có nội dung phù hợp' : page.empty}
           >

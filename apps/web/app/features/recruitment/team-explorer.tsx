@@ -145,7 +145,10 @@ export function TeamExplorer() {
                   <span className="eyebrow">BAN 0{index + 1}</span>
                   <h3>{team.name}</h3>
                 </span>
-                <span className="team-disclosure-label">Xem chi tiết</span>
+                <span className="team-disclosure-label">
+                  <span className="team-expand-label">Xem chi tiết</span>
+                  <span className="team-collapse-label">Thu gọn</span>
+                </span>
                 <ChevronDown
                   className="team-chevron"
                   size={21}

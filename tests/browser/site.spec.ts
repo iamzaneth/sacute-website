@@ -9,7 +9,7 @@ const routes = [
   '/contact',
   '/recruitment',
 ];
-for (const width of [360, 390, 768, 1024, 1366, 1920, 2560]) {
+for (const width of [320, 360, 390, 768, 1024, 1366, 1440, 1920, 2560]) {
   test(`all pages fit and render at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     const errors: string[] = [];
@@ -75,7 +75,7 @@ for (const width of [360, 390, 768, 1024, 1366, 1920, 2560]) {
     });
   });
 }
-for (const width of [390, 1366]) {
+for (const width of [320, 390, 768, 1366, 1440]) {
   test(`public pages meet automated accessibility checks at ${width}px`, async ({
     page,
   }) => {
@@ -103,6 +103,7 @@ test('mobile drawer traps focus, closes with Escape, restores focus and navigate
   await trigger.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
+  await expect(page.locator('body')).toHaveCSS('overflow', 'hidden');
   await expect
     .poll(async () => Math.abs((await dialog.boundingBox())!.x))
     .toBeLessThan(1);
@@ -124,6 +125,7 @@ test('mobile drawer traps focus, closes with Escape, restores focus and navigate
   }
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();
+  await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
   await expect(trigger).toBeFocused();
   await trigger.click();
   await dialog.getByRole('link', { name: 'Học bổng' }).click();
@@ -335,4 +337,89 @@ test('internal links and built assets resolve', async ({ page, request }) => {
   }
   for (const href of links)
     expect((await request.get(href)).status(), href).toBe(200);
+  const favicon = await page.locator('link[rel="icon"]').getAttribute('href');
+  expect(favicon).toBeTruthy();
+  expect((await request.get(favicon!)).status()).toBe(200);
+});
+
+test('skip link and search retain visible keyboard focus on narrow screens', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/information');
+  await page.keyboard.press('Tab');
+  const skip = page.getByRole('link', { name: 'Chuyển đến nội dung chính' });
+  await expect(skip).toBeFocused();
+  await expect(skip).toBeInViewport();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('main')).toBeFocused();
+  const input = page.getByLabel('Tìm kiếm nội dung');
+  await input.focus();
+  await expect(input).toHaveCSS('outline-style', 'solid');
+  await expect(input).toHaveCSS('font-size', '16px');
+  const submit = page.getByRole('button', { name: 'Tìm kiếm', exact: true });
+  expect((await submit.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await input.fill('học tập');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/q=/);
+  const reset = page.getByRole('button', { name: 'Xóa bộ lọc' });
+  await reset.focus();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL('/information');
+});
+
+test('drawer remains accessible with reduced motion and forced colors', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce', forcedColors: 'active' });
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto('/');
+  const trigger = page.getByRole('button', { name: 'Mở menu điều hướng' });
+  await trigger.click();
+  const dialog = page.getByRole('dialog');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(dialog).toHaveCSS('animation-name', 'none');
+  await expect(dialog.locator('.nav-item.active')).toHaveCSS(
+    'outline-style',
+    'solid',
+  );
+  const result = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(result.violations).toEqual([]);
+  await dialog
+    .getByRole('link', { name: 'Tuyển thành viên', exact: true })
+    .click();
+  await expect(page).toHaveURL('/recruitment');
+  await expect(dialog).not.toBeVisible();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(trigger).toBeFocused();
+});
+
+test('content reflows with 200 percent text size', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 900 });
+  for (const route of routes) {
+    await page.goto(route);
+    // Snapshot original sizes so nested content is doubled only once.
+    await page.evaluate(() => {
+      const elements = [
+        ...document.querySelectorAll<HTMLElement>('body *:not(svg):not(svg *)'),
+      ];
+      const sizes = elements.map((element) =>
+        parseFloat(getComputedStyle(element).fontSize),
+      );
+      elements.forEach(
+        (element, index) => (element.style.fontSize = `${sizes[index] * 2}px`),
+      );
+    });
+    if (route === '/recruitment')
+      await page.locator('#academics summary').click();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      route,
+    ).toBe(true);
+    await expect(page.locator('h1')).toBeVisible();
+  }
 });

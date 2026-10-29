@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
 import {
   ArrowUpRight,
@@ -108,8 +108,14 @@ export function Sidebar({
 export function InstitutionalHeader() {
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const closeMenu = () => dialog.current?.close();
+  const openMenu = () => {
+    dialog.current?.showModal();
+    document.body.style.overflow = 'hidden';
+    setMenuOpen(true);
+  };
   useEffect(() => {
     dialog.current?.close();
   }, [location.pathname]);
@@ -144,8 +150,8 @@ export function InstitutionalHeader() {
           aria-label="Mở menu điều hướng"
           aria-haspopup="dialog"
           aria-controls="mobile-navigation"
-          aria-expanded="false"
-          onClick={() => dialog.current?.showModal()}
+          aria-expanded={menuOpen}
+          onClick={openMenu}
         >
           <Menu size={24} />
         </button>
@@ -156,18 +162,9 @@ export function InstitutionalHeader() {
         className="mobile-drawer"
         aria-label="Menu điều hướng"
         onClose={() => {
+          setMenuOpen(false);
           document.body.style.overflow = '';
           trigger.current?.focus();
-        }}
-        onToggle={(event) => {
-          document.body.style.overflow = (event.target as HTMLDialogElement)
-            .open
-            ? 'hidden'
-            : '';
-          trigger.current?.setAttribute(
-            'aria-expanded',
-            String((event.target as HTMLDialogElement).open),
-          );
         }}
         onClick={(event) => {
           if (event.target === dialog.current) closeMenu();

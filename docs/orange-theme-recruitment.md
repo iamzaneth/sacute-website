@@ -1,5 +1,7 @@
 # Orange theme, recruitment teams, and contact update
 
+This document records the earlier orange-theme implementation and its validation. The subsequent balanced orange UI/UX audit, current design tokens, screenshots, and fresh verification are documented in [UI/UX review](ui-ux-review.md).
+
 This is an incremental enhancement of the existing SACUTE monorepo. No package dependencies, public route paths, API modules, database behavior, or prerender settings were replaced.
 
 ## Sidebar and footer follow-up

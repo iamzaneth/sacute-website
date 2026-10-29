@@ -1,0 +1,55 @@
+:root {
+  --color-primary: #f97316;
+  --color-primary-hover: #ea580c;
+  --color-primary-strong: #c2410c;
+  --color-primary-strong-hover: #9a3412;
+  --color-orange-soft: #ffe7d5;
+  --color-orange-subtle: #fff1e6;
+  --color-orange-highlight: #ffb077;
+
+  --color-background: #fff9f4;
+  --color-surface: #ffffff;
+  --color-sidebar: #fff1e6;
+  --color-surface-muted: #fcfaf7;
+  --color-text-primary: #252b35;
+  --color-text-heading: #17325a;
+  --color-text-secondary: #626b78;
+  --color-text-accent: #9a3412;
+  --color-border: #e5e1dc;
+  --color-border-accent: #f1dbc9;
+  --color-focus: #2066ab;
+  --color-focus-soft: #2066ab1a;
+  --color-backdrop: #172b4699;
+  --color-pending-surface: #fff4e6;
+  --color-pending-text: #804218;
+
+  --font-sans: 'Segoe UI', Arial, sans-serif;
+  --text-caption: 0.75rem;
+  --text-small: 0.875rem;
+  --text-body: 1rem;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-section: 16px;
+  --shadow-card: 0 2px 8px #252b3505;
+  --shadow-raised: 0 6px 18px #252b350d;
+  --duration-fast: 160ms;
+
+  /* Compatibility aliases keep the existing page styling on the same palette. */
+  --orange: var(--color-primary);
+  --orange-deep: var(--color-primary-strong);
+  --orange-soft: var(--color-orange-highlight);
+  --orange-pale: var(--color-orange-subtle);
+  --warm-cream: var(--color-orange-subtle);
+  --ink: var(--color-text-heading);
+  --muted: var(--color-text-secondary);
+  --line: var(--color-border);
+}

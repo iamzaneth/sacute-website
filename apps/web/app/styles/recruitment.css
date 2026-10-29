@@ -6,7 +6,7 @@
   aspect-ratio: 1;
   object-fit: contain;
   flex-shrink: 0;
-  background: white;
+  background: var(--color-surface);
   border-radius: 50%;
 }
 .brand-caption {
@@ -21,8 +21,27 @@
   letter-spacing: 0.5px;
 }
 .brand-caption > span {
-  font-size: 10px;
+  font-size: var(--text-caption);
   margin-top: 5px;
+}
+.brand-sidebar {
+  flex-direction: row;
+  gap: var(--space-3);
+  text-align: left;
+  width: 100%;
+}
+.brand-sidebar .brand-logo {
+  width: 60px;
+}
+.brand-sidebar .brand-caption {
+  min-width: 0;
+}
+.brand-sidebar .brand-caption strong {
+  font-size: 20px;
+}
+.brand-sidebar .brand-caption > span {
+  font-size: var(--text-caption);
+  line-height: 1.5;
 }
 .brand-drawer,
 .brand-footer {
@@ -65,8 +84,8 @@
   gap: 8px;
   margin-top: 12px;
   font-style: normal;
-  font-size: 12px;
-  color: #536176;
+  font-size: var(--text-caption);
+  color: var(--muted);
 }
 .footer-contact > span,
 .footer-contact > a {
@@ -76,17 +95,17 @@
 }
 .footer-contact svg {
   margin-top: 2px;
-  color: var(--orange-deep);
+  color: var(--color-text-accent);
 }
 .footer-contact a {
   width: fit-content;
-  color: #a4370b;
+  color: var(--color-text-accent);
 }
 .contact-channel > div {
   min-width: 0;
 }
 .contact-channel .contact-value {
-  color: #334155;
+  color: var(--color-text-primary);
 }
 .contact-channel a {
   overflow-wrap: anywhere;
@@ -110,38 +129,41 @@
   align-items: center;
   gap: 36px;
   padding: 40px;
-  background: var(--orange);
-  border-radius: 14px;
+  background: var(--color-orange-subtle);
+  border: 1px solid var(--color-border-accent);
+  border-left: 4px solid var(--orange);
+  border-radius: var(--radius-section);
 }
 .recruitment-hero-copy {
   min-width: 0;
 }
 .recruitment-hero .eyebrow {
-  color: #1e293b;
-  font-size: 10px;
+  color: var(--color-text-primary);
+  font-size: var(--text-caption);
 }
 .recruitment-hero h1 {
-  font-size: clamp(35px, 3.5vw, 54px);
+  font-size: clamp(32px, 3.3vw, 48px);
   font-weight: 750;
   letter-spacing: -1.6px;
   margin-top: 17px;
 }
 .recruitment-hero h1 > span {
   display: block;
+  color: var(--color-text-accent);
 }
 .recruitment-hero-copy > p:not(.eyebrow) {
-  color: #352d2b;
-  font-size: 14px;
+  color: var(--muted);
+  font-size: var(--text-small);
   line-height: 1.85;
   margin-top: 18px;
   max-width: 490px;
 }
 .recruitment-hero .button {
   margin-top: 25px;
-  background: var(--ink);
+  background: var(--orange-deep);
 }
 .recruitment-hero .button:hover {
-  background: #234878;
+  background: var(--color-primary-strong-hover);
 }
 .recruitment-hero-brand {
   display: flex;
@@ -151,13 +173,13 @@
 }
 .recruitment-hero-brand .brand-logo {
   width: clamp(130px, 15vw, 210px);
-  box-shadow: 0 0 0 15px #ffffff24;
+  box-shadow: 0 0 0 16px var(--color-orange-soft);
 }
 .recruitment-hero-brand > span {
-  font-size: 10px;
+  font-size: var(--text-caption);
   letter-spacing: 1.4px;
   font-weight: 650;
-  color: #1e293b;
+  color: var(--color-text-primary);
   text-align: center;
 }
 .recruitment-page .recruitment-status {
@@ -165,7 +187,7 @@
   background: var(--orange-pale);
 }
 .recruitment-page .status-chip {
-  font-size: 11px;
+  font-size: var(--text-caption);
 }
 .recruitment-page .recruitment-status p {
   flex: 1;
@@ -175,13 +197,13 @@
   background: var(--warm-cream);
 }
 .recruitment-page .process-steps li + li {
-  border-color: #e5cbb0;
+  border-color: var(--color-border-accent);
 }
 .recruitment-page .process-steps li > span {
-  color: #984014;
+  color: var(--color-text-accent);
 }
 .recruitment-contact {
-  border-top: 1px solid #efd4bc;
+  border-top: 1px solid var(--line);
   margin-top: 28px;
 }
 .team-explorer {
@@ -193,14 +215,14 @@
 }
 .team-introduction {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--text-small);
   max-width: 660px;
   margin-top: -6px;
   line-height: 1.9;
 }
 .team-overview {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 13px;
   margin: 28px 0 36px;
 }
@@ -209,10 +231,10 @@
   display: flex;
   flex-direction: column;
   padding: 20px 16px;
-  border: 1px solid #efcfb4;
-  border-radius: 10px;
-  background: white;
-  box-shadow: 0 3px 0 #fae6cf;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   transition:
     background 0.18s,
     border-color 0.18s,
@@ -220,13 +242,14 @@
 }
 .team-card:hover {
   background: var(--orange-pale);
-  border-color: var(--orange-deep);
-  transform: translateY(-3px);
+  border-color: var(--color-text-accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-raised);
 }
 .team-card[aria-current] {
   background: var(--warm-cream);
-  border-color: var(--orange-deep);
-  box-shadow: inset 0 4px 0 var(--orange-deep);
+  border-color: var(--color-text-accent);
+  box-shadow: inset 0 3px 0 var(--orange);
 }
 .team-card-top {
   display: flex;
@@ -239,14 +262,14 @@
   height: 44px;
   display: grid;
   place-items: center;
-  background: #ffead2;
-  color: #ac390c;
-  border-radius: 12px;
+  background: var(--color-surface-muted);
+  color: var(--muted);
+  border-radius: var(--radius-card);
   flex-shrink: 0;
 }
 .team-number {
-  font-size: 11px;
-  color: #885535;
+  font-size: var(--text-caption);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 .team-card h3 {
@@ -258,8 +281,8 @@
   overflow-wrap: anywhere;
 }
 .team-card > p {
-  font-size: 12px;
-  color: #586576;
+  font-size: var(--text-small);
+  color: var(--muted);
   line-height: 1.8;
   flex: 1;
 }
@@ -267,15 +290,15 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #a6370b;
+  color: var(--color-text-accent);
   font-weight: 650;
-  font-size: 12px;
+  font-size: var(--text-caption);
   margin-top: 22px;
-  min-height: 24px;
+  min-height: 32px;
 }
 .team-card[aria-current] .team-icon {
   background: var(--orange-deep);
-  color: white;
+  color: var(--color-surface);
 }
 .team-details-heading {
   display: flex;
@@ -289,14 +312,14 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12px;
+  font-size: var(--text-caption);
   color: var(--muted);
 }
 .team-details {
-  border-top: 1px solid #efd4bc;
+  border-top: 1px solid var(--line);
 }
 .team-detail {
-  border-bottom: 1px solid #efd4bc;
+  border-bottom: 1px solid var(--line);
 }
 .team-detail > summary {
   display: flex;
@@ -304,7 +327,7 @@
   gap: 17px;
   list-style: none;
   padding: 22px 18px;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   min-height: 92px;
 }
 .team-detail > summary::-webkit-details-marker {
@@ -321,7 +344,7 @@
   flex: 1;
 }
 .team-summary-copy .eyebrow {
-  font-size: 9px;
+  font-size: var(--text-caption);
 }
 .team-summary-copy h3 {
   font-size: 21px;
@@ -330,11 +353,15 @@
   overflow-wrap: anywhere;
 }
 .team-disclosure-label {
-  color: #915029;
-  font-size: 12px;
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+.team-detail:not([open]) .team-collapse-label,
+.team-detail[open] .team-expand-label {
+  display: none;
 }
 .team-chevron {
-  color: #a53b0e;
+  color: var(--color-text-accent);
   transition: transform 0.18s;
 }
 .team-detail[open] > summary {
@@ -344,14 +371,15 @@
   transform: rotate(180deg);
 }
 .team-detail[open] .team-icon {
-  background: white;
+  background: var(--color-surface);
+  color: var(--color-text-accent);
 }
 .team-detail-body {
   padding: 26px 20px 30px;
 }
 .team-detail-intro {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--text-small);
   max-width: 720px;
   margin-bottom: 28px;
 }
@@ -371,12 +399,12 @@
   align-items: center;
   gap: 9px;
   padding-bottom: 14px;
-  border-bottom: 2px solid #ffcea0;
+  border-bottom: 2px solid var(--color-border-accent);
   margin: 0 0 16px;
   line-height: 1.5;
 }
 .team-content-section h4 svg {
-  color: #b33c0d;
+  color: var(--color-text-accent);
 }
 .team-content-section ul {
   list-style: disc;
@@ -384,27 +412,27 @@
   margin: 0;
 }
 .team-content-section li {
-  font-size: 13px;
+  font-size: var(--text-small);
   line-height: 1.9;
-  color: #475569;
+  color: var(--color-text-primary);
   padding-left: 3px;
   margin-top: 12px;
   overflow-wrap: anywhere;
   max-width: 70ch;
 }
 .team-content-section li::marker {
-  color: #b33c0d;
+  color: var(--color-text-accent);
 }
 .team-content-section li:first-child {
   margin-top: 0;
 }
 .editorial-note {
-  background: #fff8eb;
-  border-left: 3px solid #bd591e;
+  background: var(--color-pending-surface);
+  border-left: 3px solid var(--color-orange-highlight);
   padding: 16px 19px;
   margin-top: 28px;
-  color: #75401c;
-  font-size: 12px;
+  color: var(--color-pending-text);
+  font-size: var(--text-caption);
 }
 .editorial-note strong {
   font-weight: 650;
@@ -416,6 +444,11 @@
 .team-back-link {
   margin-top: 24px;
   min-height: 40px;
+}
+@media (min-width: 1700px) {
+  .team-overview {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
 }
 @media (max-width: 1190px) {
   .team-overview {
@@ -446,7 +479,7 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .team-content-section li {
-    font-size: 14px;
+    font-size: var(--text-small);
   }
 }
 @media (max-width: 600px) {
@@ -454,10 +487,10 @@
     width: 46px;
   }
   .institution-copy > span {
-    font-size: 9px;
+    font-size: var(--text-caption);
   }
   .institution-copy > strong {
-    font-size: 11px;
+    font-size: 13px;
   }
   .institution-header {
     padding: 14px 16px;
@@ -471,7 +504,7 @@
     max-width: none;
   }
   .footer-contact {
-    font-size: 12px;
+    font-size: var(--text-caption);
   }
   .student-art {
     margin: 18px 24px 20px;
@@ -487,10 +520,10 @@
     letter-spacing: -1px;
   }
   .recruitment-hero-copy > p:not(.eyebrow) {
-    font-size: 13px;
+    font-size: var(--text-small);
   }
   .recruitment-hero .eyebrow {
-    font-size: 9px;
+    font-size: var(--text-caption);
   }
   .recruitment-hero-brand {
     flex-direction: row;
@@ -500,10 +533,10 @@
   }
   .recruitment-hero-brand .brand-logo {
     width: 86px;
-    box-shadow: 0 0 0 8px #ffffff24;
+    box-shadow: 0 0 0 8px var(--color-orange-soft);
   }
   .recruitment-hero-brand > span {
-    font-size: 9px;
+    font-size: var(--text-caption);
     max-width: 120px;
     line-height: 1.8;
   }
@@ -517,7 +550,7 @@
     font-size: 24px;
   }
   .team-introduction {
-    font-size: 13px;
+    font-size: var(--text-small);
   }
   .team-overview {
     grid-template-columns: 1fr;
@@ -542,14 +575,14 @@
     font-size: 17px;
   }
   .team-card > p {
-    font-size: 12px;
+    font-size: var(--text-small);
   }
   .team-card-action {
     margin-top: 9px;
     min-height: 32px;
   }
   .team-details-heading > span:last-child {
-    font-size: 11px;
+    font-size: var(--text-caption);
   }
   .team-detail > summary {
     padding: 18px 10px;
@@ -565,13 +598,13 @@
     padding: 24px 10px 26px;
   }
   .team-detail-intro {
-    font-size: 13px;
+    font-size: var(--text-small);
   }
   .team-content-section h4 {
     font-size: 17px;
   }
   .team-content-section li {
-    font-size: 14px;
+    font-size: var(--text-small);
     line-height: 1.9;
   }
 }

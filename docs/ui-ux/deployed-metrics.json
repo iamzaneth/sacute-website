@@ -1,0 +1,164 @@
+[
+  {
+    "width": 390,
+    "route": "/",
+    "status": 200,
+    "title": "Trang chủ | SACUTE",
+    "heading": "Thông tin & hỗ trợcho sinh viên.",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "route": "/information",
+    "status": 200,
+    "title": "Thông tin sinh viên | SACUTE",
+    "heading": "Thông tin từ SACUTE",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "route": "/scholarships",
+    "status": 200,
+    "title": "Học bổng | SACUTE",
+    "heading": "Thông tin học bổng",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "route": "/events",
+    "status": 200,
+    "title": "Sự kiện nổi bật | SACUTE",
+    "heading": "Sự kiện nổi bật",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "route": "/contact",
+    "status": 200,
+    "title": "Liên hệ | SACUTE",
+    "heading": "Kết nối với SACUTE",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "route": "/recruitment",
+    "status": 200,
+    "title": "Tuyển thành viên | SACUTE",
+    "heading": "Tuyển thành viên SACUTE",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "route": "/",
+    "status": 200,
+    "title": "Trang chủ | SACUTE",
+    "heading": "Thông tin & hỗ trợcho sinh viên.",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "route": "/information",
+    "status": 200,
+    "title": "Thông tin sinh viên | SACUTE",
+    "heading": "Thông tin từ SACUTE",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "route": "/scholarships",
+    "status": 200,
+    "title": "Học bổng | SACUTE",
+    "heading": "Thông tin học bổng",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "route": "/events",
+    "status": 200,
+    "title": "Sự kiện nổi bật | SACUTE",
+    "heading": "Sự kiện nổi bật",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "route": "/contact",
+    "status": 200,
+    "title": "Liên hệ | SACUTE",
+    "heading": "Kết nối với SACUTE",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 768,
+    "route": "/recruitment",
+    "status": 200,
+    "title": "Tuyển thành viên | SACUTE",
+    "heading": "Tuyển thành viên SACUTE",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "route": "/",
+    "status": 200,
+    "title": "Trang chủ | SACUTE",
+    "heading": "Thông tin & hỗ trợcho sinh viên.",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "route": "/information",
+    "status": 200,
+    "title": "Thông tin sinh viên | SACUTE",
+    "heading": "Thông tin từ SACUTE",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "route": "/scholarships",
+    "status": 200,
+    "title": "Học bổng | SACUTE",
+    "heading": "Thông tin học bổng",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "route": "/events",
+    "status": 200,
+    "title": "Sự kiện nổi bật | SACUTE",
+    "heading": "Sự kiện nổi bật",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "route": "/contact",
+    "status": 200,
+    "title": "Liên hệ | SACUTE",
+    "heading": "Kết nối với SACUTE",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "route": "/recruitment",
+    "status": 200,
+    "title": "Tuyển thành viên | SACUTE",
+    "heading": "Tuyển thành viên SACUTE",
+    "sidebar": "rgb(249, 115, 22)",
+    "overflow": false
+  }
+]

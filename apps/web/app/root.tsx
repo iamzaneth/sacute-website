@@ -21,6 +21,11 @@ export function Layout({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#f97316" />
+        <link
+          rel="icon"
+          type="image/svg+xml"
+          href="/branding/logo-sacute.svg"
+        />
         <Meta />
         <Links />
         {siteConfig.origin && (

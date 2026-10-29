@@ -52,11 +52,13 @@ export function EmptyState({
   title,
   children,
   compact = false,
+  headingAs: Heading = 'h3',
 }: {
   icon?: LucideIcon;
   title: string;
   children: ReactNode;
   compact?: boolean;
+  headingAs?: 'h2' | 'h3';
 }) {
   return (
     <div className={`empty-state ${compact ? 'compact' : ''}`}>
@@ -64,7 +66,7 @@ export function EmptyState({
         <Icon size={25} strokeWidth={1.5} aria-hidden="true" />
       </span>
       <div>
-        <h3>{title}</h3>
+        <Heading>{title}</Heading>
         <p>{children}</p>
       </div>
     </div>
