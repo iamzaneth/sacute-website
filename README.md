@@ -123,6 +123,12 @@ To introduce runtime SSR later, enable `ssr`, add the selected host's supported 
 
 React Router's official [prerendering documentation](https://reactrouter.com/how-to/pre-rendering) describes this static deployment model.
 
+### Vercel build settings
+
+For the frontend project, set Root Directory to `apps/web` and enable **Include source files outside of the Root Directory in the Build Step** so the shared workspace and root configuration are available. Use Node.js 24.x, `pnpm install --frozen-lockfile` as the Install Command, `pnpm run build` as the Build Command, and `build/client` as the Output Directory (relative to `apps/web`). pnpm is pinned to 11.18.0 in the root `packageManager` field.
+
+The web build compiles `@sacute/shared` before React Router loads `react-router.config.ts`, then prerenders the public routes and generates SEO files. This also works with `pnpm --filter @sacute/web build` from the repository root, without a prior root build or committed `dist` files. CI runs this standalone build immediately after installation to detect missing workspace build prerequisites. Production host routing still needs the static hosting behavior described above.
+
 ## API and future persistence
 
 The API exposes `GET /api/v1/health`, `/information`, `/scholarships`, and `/events`. Lists accept validated `page`, `limit`, `q`, and `category` queries. Controllers delegate to domain services; services depend on the `ContentRepository` token. A local implementation returns the same empty shared collections used for prerendering. Frontend list interaction needs no live API; the separate HTTP provider is opt-in for future browser reads.

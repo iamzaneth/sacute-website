@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "react-router dev --host 127.0.0.1",
-    "build": "react-router build && node scripts/generate-seo.mjs",
+    "build": "pnpm --filter @sacute/shared build && react-router build && node scripts/generate-seo.mjs",
     "preview": "node scripts/preview.mjs",
     "typecheck": "react-router typegen && tsc --noEmit"
   },
