@@ -1,0 +1,33 @@
+{
+  "name": "sacute-web",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=11"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @sacute/shared build && pnpm --parallel --filter @sacute/web --filter @sacute/api dev",
+    "build": "pnpm --filter @sacute/shared build && pnpm --filter @sacute/api build && pnpm --filter @sacute/web build",
+    "typecheck": "pnpm --filter @sacute/shared build && pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm build && node --test apps/api/test/*.test.cjs tests/seo.test.mjs",
+    "test:e2e": "playwright test",
+    "preview": "pnpm --filter @sacute/web preview"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^24.10.0",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4"
+  }
+}

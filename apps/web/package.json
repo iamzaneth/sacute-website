@@ -1,0 +1,29 @@
+{
+  "name": "@sacute/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "react-router dev --host 127.0.0.1",
+    "build": "react-router build && node scripts/generate-seo.mjs",
+    "preview": "node scripts/preview.mjs",
+    "typecheck": "react-router typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-router/node": "7.18.5",
+    "@sacute/shared": "workspace:*",
+    "isbot": "^5.1.31",
+    "lucide-react": "^1.64.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "7.18.5"
+  },
+  "devDependencies": {
+    "@react-router/dev": "7.18.5",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tailwindcss": "^4.3.3",
+    "vite": "^7.3.7"
+  }
+}

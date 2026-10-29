@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+
+storeDir: .pnpm-store
+strictPeerDependencies: true
+
+allowBuilds:
+  esbuild: true
+  '@nestjs/core': false
+
+minimumReleaseAgeExclude:
+  - lucide-react@1.64.0
