@@ -89,9 +89,6 @@ export function ArticleCard({
             <p className="post-excerpt">{item.summary}</p>
             <div className="post-card-bottom">
               <PublishedDate item={item} />
-              <span>
-                Xem chi tiết <ArrowUpRight size={16} aria-hidden="true" />
-              </span>
             </div>
           </div>
         </Link>

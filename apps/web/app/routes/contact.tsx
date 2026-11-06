@@ -58,10 +58,7 @@ export default function Contact() {
                   <h3>{label}</h3>
                   {value ? (
                     href ? (
-                      <a href={href}>
-                        {value}
-                        <ArrowUpRight size={14} aria-hidden="true" />
-                      </a>
+                      <a href={href}>{value}</a>
                     ) : (
                       <p className="contact-value">{value}</p>
                     )
@@ -99,10 +96,6 @@ export default function Contact() {
           </div>
         </section>
         <aside className="contact-aside">
-          <div className="contact-art" aria-hidden="true">
-            <MessageCircle size={78} strokeWidth={0.8} />
-            <span>?</span>
-          </div>
           <p className="eyebrow">TRƯỚC KHI LIÊN HỆ</p>
           <h2>
             Bạn đang tìm

@@ -1,4 +1,4 @@
-import { ArrowUpRight, Bell, type LucideIcon } from 'lucide-react';
+import { Bell, type LucideIcon } from 'lucide-react';
 import { Link } from 'react-router';
 import type { ReactNode } from 'react';
 
@@ -17,7 +17,6 @@ export function ActionLink({
       to={to}
     >
       {children}
-      <ArrowUpRight size={17} aria-hidden="true" />
     </Link>
   );
 }
@@ -41,7 +40,6 @@ export function SectionHeading({
       {to && (
         <Link className="text-link" to={to}>
           {linkLabel}
-          <ArrowUpRight size={17} aria-hidden="true" />
         </Link>
       )}
     </div>

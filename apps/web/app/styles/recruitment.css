@@ -243,7 +243,6 @@
 .team-card:hover {
   background: var(--orange-pale);
   border-color: var(--color-text-accent);
-  transform: translateY(-2px);
   box-shadow: var(--shadow-raised);
 }
 .team-card[aria-current] {
@@ -275,8 +274,7 @@
 .team-card h3 {
   font-size: 16px;
   font-weight: 650;
-  margin: 20px 0 12px;
-  min-height: 48px;
+  margin: 16px 0 8px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -285,16 +283,6 @@
   color: var(--muted);
   line-height: 1.8;
   flex: 1;
-}
-.team-card-action {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-text-accent);
-  font-weight: 650;
-  font-size: var(--text-caption);
-  margin-top: 22px;
-  min-height: 32px;
 }
 .team-card[aria-current] .team-icon {
   background: var(--orange-deep);
@@ -564,7 +552,7 @@
     padding: 20px;
   }
   .team-card-top {
-    grid-row: 1 / 4;
+    grid-row: 1 / 3;
     align-self: start;
   }
   .team-number {
@@ -576,10 +564,6 @@
   }
   .team-card > p {
     font-size: var(--text-small);
-  }
-  .team-card-action {
-    margin-top: 9px;
-    min-height: 32px;
   }
   .team-details-heading > span:last-child {
     font-size: var(--text-caption);

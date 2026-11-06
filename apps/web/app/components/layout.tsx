@@ -140,10 +140,6 @@ export function InstitutionalHeader() {
           <span>{organization.institution}</span>
           <strong>{organization.name}</strong>
         </div>
-        <span className="header-note">
-          <span />
-          Không gian sinh viên
-        </span>
         <button
           className="menu-trigger icon-button"
           ref={trigger}

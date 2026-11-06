@@ -1,7 +1,5 @@
 import { Link } from 'react-router';
 import {
-  ArrowRight,
-  ArrowUpRight,
   Bell,
   BookOpen,
   CalendarDays,
@@ -63,10 +61,6 @@ export function HomePage() {
             Kỹ thuật TP.HCM. Website là không gian tổng hợp thông tin và kết nối
             dành cho sinh viên.
           </p>
-          <Link className="text-link" to="/information">
-            Tìm hiểu thông tin từ SACUTE{' '}
-            <ArrowRight size={17} aria-hidden="true" />
-          </Link>
         </div>
       </section>
       <section
@@ -80,10 +74,7 @@ export function HomePage() {
               <Icon size={26} strokeWidth={1.4} aria-hidden="true" />
               <span>{number}</span>
             </div>
-            <h2>
-              {label}
-              <ArrowUpRight size={19} aria-hidden="true" />
-            </h2>
+            <h2>{label}</h2>
             <p>{text}</p>
           </Link>
         ))}
@@ -117,7 +108,7 @@ export function HomePage() {
               ký một chương trình.
             </p>
             <Link to="/contact" className="text-link">
-              Bạn cần hỗ trợ? <ArrowUpRight size={16} aria-hidden="true" />
+              Bạn cần hỗ trợ?
             </Link>
           </aside>
         </div>
@@ -165,9 +156,6 @@ export function HomePage() {
                   <div>
                     <p className="eyebrow">{item.eventName}</p>
                     <h3>{item.title}</h3>
-                    <span className="text-link">
-                      Đọc bài viết <ArrowUpRight size={15} aria-hidden="true" />
-                    </span>
                   </div>
                 </Link>
               ))}

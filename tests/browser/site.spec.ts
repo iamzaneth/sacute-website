@@ -169,7 +169,7 @@ for (const width of [1024, 1366, 1920]) {
     }
     await expectIndependentColumns();
     expect((await sidebarAvatar.boundingBox())!.width).toBeGreaterThanOrEqual(
-      140,
+      56,
     );
     await sidebar
       .getByRole('button', { name: 'Thu gọn thanh điều hướng' })

@@ -105,10 +105,6 @@ export function TeamExplorer() {
               </span>
               <h3>{team.name}</h3>
               <p>{team.shortDescription}</p>
-              <span className="team-card-action">
-                Tìm hiểu thêm
-                <ArrowUpRight size={17} aria-hidden="true" />
-              </span>
             </a>
           );
         })}
