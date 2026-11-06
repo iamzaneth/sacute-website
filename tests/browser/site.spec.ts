@@ -537,3 +537,81 @@ test('explicit all categories survives search, reload, and browser history', asy
     page.getByRole('heading', { name: 'Chưa có học bổng được công bố' }),
   ).toBeVisible();
 });
+
+for (const width of [1024, 1366, 1920]) {
+  test(`sidebar animation keeps controls stable and shell aligned at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    await page.locator('.sidebar-toggle').waitFor();
+    for (const opening of [false, true]) {
+      const frames = await page.evaluate(async () => {
+        const sidebar = document.querySelector('.sidebar')!;
+        const toggle =
+          document.querySelector<HTMLButtonElement>('.sidebar-toggle')!;
+        const icon = sidebar.querySelector('.nav-item > svg')!;
+        const supportIcon = sidebar.querySelector('.sidebar-bottom a > svg')!;
+        const snapshot = () => ({
+          width: sidebar.getBoundingClientRect().width,
+          iconX: icon.getBoundingClientRect().x,
+          iconY: icon.getBoundingClientRect().y,
+          toggleY: toggle.getBoundingClientRect().y,
+          supportX: supportIcon.getBoundingClientRect().x,
+          supportY: supportIcon.getBoundingClientRect().y,
+          headerGap:
+            document
+              .querySelector('.institution-header')!
+              .getBoundingClientRect().x -
+            sidebar.getBoundingClientRect().right,
+          contentGap:
+            document.querySelector('.site-body')!.getBoundingClientRect().x -
+            sidebar.getBoundingClientRect().right,
+          overflow: document.documentElement.scrollWidth > innerWidth,
+        });
+        const samples = [snapshot()];
+        toggle.click();
+        const started = performance.now();
+        await new Promise<void>((resolve) => {
+          const sample = () => {
+            samples.push(snapshot());
+            if (performance.now() - started < 350)
+              requestAnimationFrame(sample);
+            else resolve();
+          };
+          requestAnimationFrame(sample);
+        });
+        return samples;
+      });
+      expect(
+        frames.some(
+          (frame) =>
+            frame.width > 105 &&
+            frame.width < frames[opening ? frames.length - 1 : 0].width - 1,
+        ),
+      ).toBe(true);
+      for (const frame of frames) {
+        expect(frame.iconX).toBeCloseTo(frames[0].iconX, 0);
+        expect(frame.iconY).toBeCloseTo(frames[0].iconY, 0);
+        expect(frame.toggleY).toBeCloseTo(frames[0].toggleY, 0);
+        expect(frame.supportX).toBeCloseTo(frames[0].supportX, 0);
+        expect(frame.supportY).toBeCloseTo(frames[0].supportY, 0);
+        expect(Math.abs(frame.headerGap)).toBeLessThan(1);
+        expect(Math.abs(frame.contentGap)).toBeLessThan(1);
+        expect(frame.overflow).toBe(false);
+      }
+      if (!opening) {
+        const support = page.locator('.sidebar-bottom a');
+        await support.hover();
+        const bounds = (await support.boundingBox())!;
+        const rail = (await page.locator('.sidebar').boundingBox())!;
+        const icon = (await support.locator('svg').first().boundingBox())!;
+        expect(bounds.width).toBe(80);
+        expect(bounds.x - rail.x).toBeCloseTo(12, 0);
+        expect(
+          Math.abs(bounds.x + bounds.width / 2 - (icon.x + icon.width / 2)),
+        ).toBeLessThan(1);
+      }
+    }
+  });
+}

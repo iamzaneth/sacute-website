@@ -47,6 +47,8 @@
   --shadow-card: 0 2px 8px #252b3505;
   --shadow-raised: 0 6px 18px #252b350d;
   --duration-fast: 160ms;
+  --duration-sidebar: 220ms;
+  --ease-sidebar: cubic-bezier(0.2, 0, 0, 1);
 
   /* Compatibility aliases keep the existing page styling on the same palette. */
   --orange: var(--color-primary);
