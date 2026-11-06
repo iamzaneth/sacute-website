@@ -31,9 +31,11 @@ export default function Post({ loaderData }: Route.ComponentProps) {
     typeof requestedReturn === 'string' &&
     /^\/(events|information|scholarships)(\?|$)/.test(requestedReturn)
       ? requestedReturn
-      : loaderData.item.eventName
+      : loaderData.item.kind === 'event'
         ? '/events'
-        : '/information';
+        : loaderData.item.kind === 'scholarship'
+          ? '/scholarships'
+          : '/information';
   return (
     <div className="page post-detail-page">
       <Link className="text-link post-back-link" to={returnTo}>

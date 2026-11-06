@@ -53,7 +53,7 @@ export function ContentList({
   const [params, setParams] = useSearchParams();
   const query = params.get('q') ?? '';
   const category =
-    params.get('category') ?? (kind === 'information' ? 'Hoạt động' : '');
+    params.get('category') ?? (kind === 'information' ? 'Thông báo' : '');
   const hasFilters = Boolean(query || category);
   const categories =
     kind === 'events'
