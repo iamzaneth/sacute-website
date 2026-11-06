@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { organization } from '@sacute/shared';
 
 export const centerProfile = {
+  favicon: '/branding/profile/favicon.svg',
   cover: {
     src: '/branding/profile/background.png',
     width: 960,

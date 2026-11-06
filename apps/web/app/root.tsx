@@ -22,7 +22,12 @@ export function Layout({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#f97316" />
-        <link rel="icon" type="image/jpeg" href={centerProfile.avatar.src} />
+        <link
+          rel="icon"
+          type="image/svg+xml"
+          sizes="any"
+          href={centerProfile.favicon}
+        />
         <Meta />
         <Links />
         {siteConfig.origin && (

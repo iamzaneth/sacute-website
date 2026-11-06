@@ -7,5 +7,6 @@ build
 test-results
 playwright-report
 apps/web/public/branding/logo-sacute.svg
+apps/web/public/branding/profile/favicon.svg
 tmp/
 packages/shared/src/generated/

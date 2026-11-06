@@ -147,24 +147,30 @@ for (const width of [1024, 1366, 1920]) {
       name: 'Thanh điều hướng',
     });
     const initialWidth = (await sidebar.boundingBox())!.width;
-    await expect(sidebar.locator('img')).toHaveCount(0);
-    const headerAvatar = page.locator('.institution-header .header-logo img');
-    await expect(headerAvatar).toHaveAttribute(
+    const sidebarAvatar = sidebar.locator('.brand-logo');
+    await expect(sidebarAvatar).toHaveAttribute(
       'src',
       '/branding/profile/avatar.jpg',
     );
-    async function expectSharedAvatar() {
-      const avatar = (await headerAvatar.boundingBox())!;
+    await expect(page.locator('.institution-header .header-logo')).toBeHidden();
+    async function expectIndependentColumns() {
+      const avatar = (await sidebarAvatar.boundingBox())!;
       const header = (await page.locator('.institution-header').boundingBox())!;
       const navigation = (await sidebar.boundingBox())!;
+      expect(navigation.y).toBe(0);
       expect(avatar.x).toBeGreaterThanOrEqual(navigation.x);
       expect(avatar.x + avatar.width).toBeLessThanOrEqual(
         navigation.x + navigation.width,
       );
-      expect(avatar.y).toBeLessThan(header.y + header.height);
-      expect(avatar.y + avatar.height).toBeGreaterThan(navigation.y);
+      expect(header.x).toBeGreaterThanOrEqual(
+        navigation.x + navigation.width - 1,
+      );
+      expect(header.width + navigation.width).toBeCloseTo(width, 0);
     }
-    await expectSharedAvatar();
+    await expectIndependentColumns();
+    expect((await sidebarAvatar.boundingBox())!.width).toBeGreaterThanOrEqual(
+      140,
+    );
     await sidebar
       .getByRole('button', { name: 'Thu gọn thanh điều hướng' })
       .click();
@@ -174,11 +180,11 @@ for (const width of [1024, 1366, 1920]) {
     await expect(expand).toHaveAttribute('aria-expanded', 'false');
     await expect
       .poll(async () => (await sidebar.boundingBox())!.width)
-      .toBe(84);
-    await expectSharedAvatar();
+      .toBe(104);
+    await expectIndependentColumns();
     await expect
       .poll(async () => (await page.locator('.site-body').boundingBox())!.x)
-      .toBe(84);
+      .toBe(104);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -384,6 +390,24 @@ test('internal links and built assets resolve', async ({ page, request }) => {
   const favicon = await page.locator('link[rel="icon"]').getAttribute('href');
   expect(favicon).toBeTruthy();
   expect((await request.get(favicon!)).status()).toBe(200);
+  expect(favicon).toMatch(/favicon\.svg$/);
+  const iconAlpha = await page.evaluate(async (url) => {
+    const image = new Image();
+    image.src = url!;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 32;
+    const context = canvas.getContext('2d')!;
+    context.drawImage(image, 0, 0, 32, 32);
+    return [
+      [0, 0],
+      [31, 0],
+      [0, 31],
+      [31, 31],
+      [16, 16],
+    ].map(([x, y]) => context.getImageData(x, y, 1, 1).data[3]);
+  }, favicon);
+  expect(iconAlpha).toEqual([0, 0, 0, 0, 255]);
 });
 
 test('skip link and search retain visible keyboard focus on narrow screens', async ({

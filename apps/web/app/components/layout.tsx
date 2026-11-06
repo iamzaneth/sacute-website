@@ -84,6 +84,7 @@ export function Sidebar({
           <PanelLeftClose size={21} aria-hidden="true" />
         )}
       </button>
+      <Brand />
       <div className="nav-caption">KHÁM PHÁ SACUTE</div>
       <div id="desktop-navigation">
         <Navigation collapsed={collapsed} />
