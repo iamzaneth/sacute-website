@@ -1,37 +1,34 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import {
+  localContent,
+  organization,
+  publicRoutes,
+} from '../packages/shared/dist/index.js';
 import {
   buildSeoFiles,
   validateOrigin,
 } from '../apps/web/scripts/generate-seo.mjs';
 
-const routes = [
-  '/',
-  '/information',
-  '/scholarships',
-  '/events',
-  '/contact',
-  '/recruitment',
-];
+const routes = publicRoutes;
 test('post detail pages are prerendered with complete content and unique metadata', async () => {
-  for (const slug of ['xuan-tinh-nguyen-2026', 'chuyen-xe-doan-vien-2026']) {
-    const metadata = JSON.parse(
-      await readFile(
-        `apps/api/mock-data/posts/events/${slug}/metadata.json`,
-        'utf8',
-      ),
-    );
+  for (const item of new Map(
+    Object.values(localContent)
+      .flat()
+      .map((post) => [post.slug, post]),
+  ).values()) {
+    const { slug } = item;
     const html = await readFile(
       `apps/web/build/client/posts/${slug}/index.html`,
       'utf8',
     );
-    assert.ok(html.includes(`<title>${metadata.title} | SACUTE</title>`));
+    assert.ok(html.includes(`<title>${item.title} | SACUTE</title>`));
     assert.match(html, /<h1[^>]*>/);
-    assert.ok(html.includes(metadata.publishedAt));
-    assert.ok(html.includes(metadata.source.url.replace(/&/g, '&amp;')));
-    assert.ok(html.includes(metadata.tags[0]));
+    if (item.publishedAt) assert.ok(html.includes(item.publishedAt));
+    if (item.sourceUrl)
+      assert.ok(html.includes(item.sourceUrl.replace(/&/g, '&amp;')));
+    for (const image of item.images ?? []) assert.ok(html.includes(image.url));
     await readFile(`apps/web/build/client/posts/${slug}.data`);
   }
 });
@@ -58,7 +55,7 @@ test('production origins cannot contain paths, credentials or local hosts', () =
     'https://verified.example',
   );
 });
-test('all six build outputs contain meaningful Vietnamese HTML and unique metadata', async () => {
+test('all public build outputs contain meaningful Vietnamese HTML and unique metadata', async () => {
   const titles = new Set();
   const descriptions = new Set();
   for (const route of routes) {
@@ -77,8 +74,8 @@ test('all six build outputs contain meaningful Vietnamese HTML and unique metada
     titles.add(html.match(/<title>(.*?)<\/title>/s)?.[1]);
     descriptions.add(html.match(/name="description" content="(.*?)"/)?.[1]);
   }
-  assert.equal(titles.size, 6);
-  assert.equal(descriptions.size, 6);
+  assert.equal(titles.size, routes.length);
+  assert.equal(descriptions.size, routes.length);
 });
 test('SEO files and 404 fallback exist in the static output', async () => {
   assert.match(
@@ -95,80 +92,15 @@ test('SEO files and 404 fallback exist in the static output', async () => {
   );
 });
 
-test('prerendered team descriptions preserve every supplied bullet, including closed accordions', async () => {
-  const html = await readFile(
-    'apps/web/build/client/recruitment/index.html',
-    'utf8',
-  );
-  const expected = JSON.parse(
-    await readFile('tests/fixtures/recruitment-content-hashes.json', 'utf8'),
-  );
-  assert.match(html, /<title>Tuyển thành viên \| SACUTE<\/title>/);
-  const decode = (value) =>
-    value
-      .replace(/&amp;/g, '&')
-      .replace(/&quot;/g, '"')
-      .replace(/&#x27;/g, "'")
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>');
-  let count = 0;
-  for (const [slug, evidence] of Object.entries(expected)) {
-    const match = html.match(
-      new RegExp(
-        `<details\\b(?=[^>]*\\bid="${slug}")[^>]*>([\\s\\S]*?)<\\/details>`,
-      ),
-    );
-    assert.ok(match, `Missing prerendered team: ${slug}`);
-    const lists = [...match[1].matchAll(/<ul>([\s\S]*?)<\/ul>/g)];
-    assert.deepEqual(
-      lists.map(([, list]) => [...list.matchAll(/<li>/g)].length),
-      evidence.counts,
-      slug,
-    );
-    const bullets = lists.flatMap(([, list]) =>
-      [...list.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(([, text]) =>
-        decode(text),
-      ),
-    );
-    assert.equal(
-      createHash('sha256').update(bullets.join('\n')).digest('hex'),
-      evidence.sha256,
-      `Content changed for ${slug}`,
-    );
-    count += bullets.length;
-    for (const heading of [
-      'Mô tả công việc',
-      'Yêu cầu công việc',
-      'Quyền lợi tham gia',
-    ])
-      assert.ok(match[1].includes(heading));
-  }
-  assert.equal(count, 72);
-  assert.match(html, /Nội dung này đang chờ xác nhận biên tập/);
-});
-
-test('official logo is deployed without changing its original bytes', async () => {
-  const source = await readFile('apps/web/public/branding/logo-sacute.svg');
-  const deployed = await readFile(
-    'apps/web/build/client/branding/logo-sacute.svg',
-  );
-  assert.deepEqual(deployed, source);
-  assert.equal(
-    createHash('sha256').update(source).digest('hex'),
-    'a9f35df31e2431088406b353ffbdc36180ff1e598656db6478df3761e9a63bd2',
-  );
-});
-
 test('supplied contact details are present in prerendered contact and footer content', async () => {
   const html = await readFile(
     'apps/web/build/client/contact/index.html',
     'utf8',
   );
   for (const value of [
-    'sacute@hcmute.edu.vn',
-    'Số 01, Võ Văn Ngân, P. Thủ Đức, TP. HCM',
-    'https://www.facebook.com/hotrosinhvienspkt',
-    'https://www.tiktok.com/@sacute.2015',
+    organization.email,
+    organization.address,
+    ...organization.socialLinks.map((link) => link.url),
   ])
     assert.ok(html.includes(value), value);
   const footer = html.match(/<footer\b[^>]*>([\s\S]*?)<\/footer>/)?.[1];

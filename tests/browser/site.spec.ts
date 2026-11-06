@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { localContent } from '../../packages/shared/src/index';
+
+const notices = localContent.information.filter(
+  (item) => item.category === 'Thông báo',
+);
+const searchTitle = localContent.events[0].title;
 
 const routes = [
   '/',
@@ -57,22 +63,8 @@ for (const width of [320, 360, 390, 768, 1024, 1366, 1440, 1920, 2560]) {
           window.scrollTo({ top: 0, behavior: 'instant' });
         });
       }
-      if (
-        [390, 1366].includes(width) &&
-        ['/contact', '/recruitment'].includes(route)
-      ) {
-        await page.screenshot({
-          path: `test-results/${route.slice(1)}-${width}.png`,
-          fullPage: true,
-        });
-      }
     }
     expect(errors).toEqual([]);
-    await page.goto('/');
-    await page.screenshot({
-      path: `test-results/home-${width}.png`,
-      fullPage: true,
-    });
   });
 }
 for (const width of [320, 390, 768, 1366, 1440]) {
@@ -107,7 +99,6 @@ test('mobile drawer traps focus, closes with Escape, restores focus and navigate
   await expect
     .poll(async () => Math.abs((await dialog.boundingBox())!.x))
     .toBeLessThan(1);
-  await page.screenshot({ path: 'test-results/mobile-drawer-left.png' });
   await expect(
     dialog.getByRole('button', { name: 'Đóng menu điều hướng' }),
   ).toBeFocused();
@@ -196,10 +187,6 @@ for (const width of [1024, 1366, 1920]) {
       sidebar.getByRole('link', { name: 'Học bổng', exact: true }),
     ).toHaveAttribute('aria-current', 'page');
     await expect(expand).toBeVisible();
-    await page.screenshot({
-      path: `test-results/sidebar-collapsed-${width}.png`,
-      fullPage: true,
-    });
     const accessibility = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
       .analyze();
@@ -259,10 +246,6 @@ for (const width of [390, 1366]) {
     await expect(page.locator('#skills-workshops')).not.toHaveAttribute('open');
     await page.keyboard.press('Space');
     await expect(page.locator('#skills-workshops')).toHaveAttribute('open', '');
-    await page.screenshot({
-      path: `test-results/team-details-${width}.png`,
-      fullPage: true,
-    });
     await page.goto('/recruitment#housing-employment');
     await expect(page.locator('#housing-employment')).toHaveAttribute(
       'open',
@@ -318,10 +301,10 @@ test('search and filters update the URL, reset, and recover empty results', asyn
     'Xóa bộ lọc',
   ]);
   await expect(
-    filters.getByRole('button', { name: 'Hoạt động', exact: true }),
+    filters.getByRole('button', { name: 'Thông báo', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.article-card')).toHaveCount(2);
-  await page.getByLabel('Tìm kiếm nội dung').fill('học tập');
+  await expect(page.locator('.article-card')).toHaveCount(notices.length);
+  await page.getByLabel('Tìm kiếm nội dung').fill('không-tồn-tại-demo');
   await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).click();
   await expect(page).toHaveURL(/q=/);
   await expect(
@@ -335,15 +318,13 @@ test('search and filters update the URL, reset, and recover empty results', asyn
   await expect(
     filters.getByRole('button', { name: 'Tất cả', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.article-card')).toHaveCount(2);
-  await expect(
-    page.getByRole('heading', { name: 'Chiến dịch Xuân Tình Nguyện 2026' }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('heading', {
-      name: 'Lễ khởi hành Chuyến xe đoàn viên 2026',
-    }),
-  ).toBeVisible();
+  await expect(page.locator('.article-card')).toHaveCount(
+    localContent.information.length,
+  );
+  for (const item of localContent.information)
+    await expect(
+      page.getByRole('heading', { name: item.title, exact: true }),
+    ).toBeVisible();
 });
 test('FAQs expand and unknown routes have a functional HTTP 404 fallback', async ({
   page,
@@ -432,7 +413,7 @@ test('skip link and search retain visible keyboard focus on narrow screens', asy
   await expect(input).toHaveCSS('font-size', '16px');
   const submit = page.getByRole('button', { name: 'Tìm kiếm', exact: true });
   expect((await submit.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  await input.fill('học tập');
+  await input.fill('không-tồn-tại-demo');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/q=/);
   const reset = page.getByRole('button', { name: 'Xóa bộ lọc' });
@@ -503,38 +484,42 @@ test('explicit all categories survives search, reload, and browser history', asy
   await page.goto('/information');
   const filters = page.getByRole('group', { name: 'Lọc theo chuyên mục' });
   const all = filters.getByRole('button', { name: 'Tất cả', exact: true });
-  const activity = filters.getByRole('button', {
-    name: 'Hoạt động',
+  const announcement = filters.getByRole('button', {
+    name: 'Thông báo',
     exact: true,
   });
-  await expect(activity).toHaveAttribute('aria-pressed', 'true');
+  await expect(announcement).toHaveAttribute('aria-pressed', 'true');
   await all.click();
   await expect(all).toHaveAttribute('aria-pressed', 'true');
   await expect(page).toHaveURL('/information?category=');
-  await page.getByLabel('Tìm kiếm nội dung').fill('đoàn viên');
+  await page.getByLabel('Tìm kiếm nội dung').fill(searchTitle);
   await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).click();
   await expect(page.locator('.result-count')).toHaveText('1 bài viết');
   await expect(all).toHaveAttribute('aria-pressed', 'true');
   await page.reload();
   await expect(all).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByLabel('Tìm kiếm nội dung')).toHaveValue('đoàn viên');
+  await expect(page.getByLabel('Tìm kiếm nội dung')).toHaveValue(searchTitle);
   await page.getByRole('button', { name: 'Xóa bộ lọc' }).click();
-  await expect(page.locator('.result-count')).toHaveText('2 bài viết');
+  await expect(page.locator('.result-count')).toHaveText(
+    `${localContent.information.length} bài viết`,
+  );
   await expect(page.getByLabel('Tìm kiếm nội dung')).toHaveValue('');
   await expect(all).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Xóa bộ lọc' })).toHaveCount(0);
   await page.goBack();
-  await expect(page.getByLabel('Tìm kiếm nội dung')).toHaveValue('đoàn viên');
+  await expect(page.getByLabel('Tìm kiếm nội dung')).toHaveValue(searchTitle);
   await expect(page.locator('.result-count')).toHaveText('1 bài viết');
   await page.goForward();
-  await expect(page.locator('.result-count')).toHaveText('2 bài viết');
+  await expect(page.locator('.result-count')).toHaveText(
+    `${localContent.information.length} bài viết`,
+  );
   await page.goto('/scholarships?q=missing&category=Học+bổng');
   await page.getByRole('button', { name: 'Xóa bộ lọc' }).click();
   await expect(
     page.getByRole('button', { name: 'Tất cả', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(
-    page.getByRole('heading', { name: 'Chưa có học bổng được công bố' }),
+    page.getByRole('heading', { name: localContent.scholarships[0].title }),
   ).toBeVisible();
 });
 

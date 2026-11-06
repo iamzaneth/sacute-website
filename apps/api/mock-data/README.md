@@ -1,71 +1,54 @@
 # Dữ liệu bài viết
 
-Nguồn chỉnh sửa: `apps/api/mock-data/posts/<collection>/<slug>/`.
+Nguồn duy nhất để sửa bài: `posts/<collection>/<slug>/`.
 
-```text
-posts/events/
-├── xuan-tinh-nguyen-2026/
-│   ├── metadata.json
-│   ├── content.md
-│   └── images/cover.jpg
-└── chuyen-xe-doan-vien-2026/
-    ├── metadata.json
-    ├── content.md
-    └── images/photo-01.jpg … photo-14.jpg
-```
+| Collection     | `kind`        | Hiển thị                                 |
+| -------------- | ------------- | ---------------------------------------- |
+| `information`  | `information` | Thông tin → Thông báo                    |
+| `scholarships` | `scholarship` | Học bổng                                 |
+| `events`       | `event`       | Sự kiện nổi bật và Thông tin → Hoạt động |
 
-Hai bài thuộc **Sự kiện nổi bật**. `eventName` và `category` tương ứng là
-**Xuân tình nguyện** và **Chuyến xe đoàn viên**. Ảnh là tệp đính kèm của bài viết,
-không phải ảnh nền hoặc ảnh bìa giao diện.
+Sự kiện nổi bật chỉ gồm Chuyến xe đoàn viên và Xuân tình nguyện. Hai thông báo
+hội thảo dùng cùng `eventName` để ghi nhận chung một chương trình, không thêm
+vào collection `events`. Mục Thông tin mặc định mở chuyên mục Thông báo.
 
-- Bài Xuân tình nguyện: nguyên văn từ JSON nhúng trong bản HTML Facebook do chủ dự án cung cấp;
-  đăng lúc 19:01:21 ngày 01/01/2026 (UTC+7); một ảnh gốc 2048 × 800.
-- Bài Chuyến xe đoàn viên: nguyên văn tệp nội dung do chủ dự án cung cấp; người đăng và ngày
-  đăng lấy từ ghi chú đi kèm; đủ 14 ảnh gốc 2048 × 1369. Nguồn chỉ cho biết
-  ngày 07/02/2026, nên `publishedAt` giữ dạng ngày với
-  `publishedAtPrecision: "date"`, không suy diễn giờ đăng. Thứ tự ảnh theo tên
-  file do chưa có thứ tự album từ nguồn.
-- Tiêu đề ngắn, tóm tắt và tên sự kiện nằm trong metadata. `content.md` giữ
-  nguyên văn, emoji, hashtag và xuống dòng. `originalTitle` lưu tiêu đề gốc;
-  giao diện dùng tiêu đề ngắn và tránh lặp lại dòng tiêu đề trong nội dung.
-- `images` là danh sách có thứ tự gồm `path`, `alt`, `width`, `height`.
-  Một ảnh được hiển thị toàn bộ; nhiều ảnh thành lưới tối đa năm ô, có số ảnh
-  còn lại và trình xem toàn bộ album bằng chuột hoặc phím mũi tên/Escape.
-- `contentFormat: "plain-text"`: web hiển thị văn bản với liên kết HTTPS/email;
-  chưa diễn giải cú pháp Markdown. Không nhập bình luận hoặc dữ liệu tài khoản.
+## Thêm hoặc sửa bài
 
-## Chạy và cập nhật
+Mỗi thư mục bài có:
 
-Chạy `pnpm dev` từ thư mục gốc, mở `/events`. Trang chủ liên kết tới cả hai bài.
-API: `GET http://localhost:3001/api/v1/events`; hỗ trợ `q`, `category`, `page`,
-`limit` như trước. Mọi bài trong `/events` cũng tự xuất hiện tại `/information`, chuyên mục **Hoạt động**.
-Nguồn bài và ảnh chỉ lưu một lần trong `posts/events`; không cần chép bài sang
-`posts/information`. Mục Thông tin có các bộ lọc **Tất cả**, **Thông báo** và **Hoạt động**,
-mặc định mở **Hoạt động**. Xóa bộ lọc sẽ về **Tất cả**.
+- `metadata.json`: ID duy nhất, slug khớp tên thư mục, kind, tiêu đề ngắn,
+  tóm tắt, chuyên mục, tác giả, nguồn và trạng thái xuất bản.
+- `content.md`: nguyên văn văn bản, emoji, hashtag và xuống dòng. Dùng
+  `contentFile: "content.md"`, `contentFormat: "plain-text"`; chưa hỗ trợ Markdown.
+- `images/`: ảnh đính kèm được khai báo bằng `path`, `alt`, `width`, `height`
+  trong mảng `images`, theo đúng thứ tự hiển thị.
 
-Danh sách hiển thị thẻ gọn trong lưới tự điều chỉnh số cột theo chiều rộng. Bấm
-vào thẻ để mở `/posts/<slug>` với đầy đủ nội dung và album ảnh. Trang chi tiết
-được prerender để mở trực tiếp, tải lại hoặc chia sẻ liên kết. Nút quay lại giữ
-bộ lọc của danh sách khi điều hướng từ thẻ bài viết.
+`originalTitle` giữ tiêu đề gốc; giao diện bỏ dòng này khỏi phần thân khi đã
+hiển thị tiêu đề ngắn. `publishedAt` dùng ISO 8601 kèm múi giờ khi biết giờ đăng;
+nếu chỉ biết ngày thì giữ `YYYY-MM-DD` và `publishedAtPrecision: "date"`.
+Không suy diễn giờ đăng hoặc thông tin không có trong nguồn.
 
-Sau khi sửa metadata/nội dung/ảnh, restart `pnpm dev` hoặc build lại.
-`pnpm --filter @sacute/shared build` tự chạy `scripts/prepare-mock-content.mjs`:
+Chỉ `publicationStatus: "published"` được đưa lên web; dùng `draft` để ẩn bài.
+`status` của học bổng/sự kiện tách riêng khỏi trạng thái xuất bản.
+Lịch sự kiện dùng `startsAt` nếu biết giờ, `startsOn`/`endsOn` nếu chỉ biết ngày.
+Học bổng dùng `provider`, `eligibility`, `opensAt`, `closesAt` khi nguồn xác nhận.
 
-1. Đọc các bài có `publicationStatus: "published"` và tạo collection dùng chung
-   cho API và web prerender tại `packages/shared/src/generated/mock-content.ts`.
-2. Tạo lại các thư mục ảnh sinh tự động trong `apps/api/public/media/mock/` và
-   `apps/web/public/media/mock/`. Mỗi ảnh có URL
-   `/media/mock/<collection>/<slug>/<filename>`.
+Không chép HTML Facebook, script, bình luận hoặc dữ liệu tài khoản vào nguồn
+công khai. Video chưa hỗ trợ; giữ liên kết bài gốc trong `source.url`.
 
-Không sửa file sinh tự động; chúng được Git bỏ qua. Các tệp đầu vào tạm đã được dọn sau khi chuyển đầy đủ nội dung và ảnh vào
-`posts/`; build chỉ đọc nguồn chuẩn này, không cần thư mục `tmp/`. Các đường dẫn
-đầu vào cũ trong trường nguồn của metadata chỉ ghi nhận xuất xứ, không phải
-file cần có khi build. Khi đóng gói API, mang theo
-`apps/api/public` cùng với `dist`.
+## Sinh dữ liệu và media
 
-Để thêm bài, tạo thư mục mới với ID/slug riêng, `kind: "event"`, `eventName`,
-`category`, người đăng, nguồn, ngày đăng, `contentFile: "content.md"` và mảng
-`images`. Dùng `publicationStatus: "draft"` để chưa đưa bài vào collection.
-`status` là trạng thái sự kiện (`upcoming`, `ongoing`, `ended`), tách riêng khỏi
-trạng thái xuất bản. `startsOn`/`endsOn` dành cho lịch chỉ biết ngày;
-`startsAt` dành cho lịch có giờ và múi giờ.
+Sau khi sửa nguồn, chạy `pnpm --filter @sacute/shared build` hoặc khởi động lại
+`pnpm dev`. Build tạo lại:
+
+- `packages/shared/src/generated/mock-content.ts`: dữ liệu dùng chung cho API/web.
+- `apps/web/public/media/mock/` và `apps/api/public/media/mock/`: bản sao ảnh công khai.
+
+Các tệp sinh tự động được Git bỏ qua; không sửa trực tiếp. Web dev tự khởi động
+lại khi dữ liệu sinh thay đổi để cập nhật đường dẫn trang chi tiết.
+Build không phụ thuộc thư mục `tmp`; trường `source.file` chỉ ghi xuất xứ.
+Khi đóng gói API, mang theo `apps/api/public` cùng `dist`.
+
+Thẻ bài mở `/posts/<slug>`. Trang chi tiết được prerender, hiển thị đầy đủ
+nội dung/album và giữ bộ lọc khi quay lại danh sách. Một ảnh hiển thị toàn bộ;
+nhiều ảnh có lưới tối đa năm ô và trình xem album hỗ trợ mũi tên/Escape.
