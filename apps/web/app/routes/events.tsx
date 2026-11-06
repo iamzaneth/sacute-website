@@ -5,7 +5,7 @@ import type { Route } from './+types/events';
 export const meta = () =>
   pageMeta(
     'Sự kiện nổi bật',
-    'Khám phá thông tin hoạt động sinh viên và sự kiện SACUTE. Lịch trình sẽ hiển thị sau khi có xác nhận chính thức.',
+    'Theo dõi bài viết, hình ảnh và hoạt động từ Xuân tình nguyện, Chuyến xe đoàn viên cùng các sự kiện nổi bật của SACUTE.',
     '/events',
   );
 export async function loader() {

@@ -8,3 +8,4 @@ test-results
 playwright-report
 apps/web/public/branding/logo-sacute.svg
 tmp/
+packages/shared/src/generated/

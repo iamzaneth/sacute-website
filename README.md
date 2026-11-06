@@ -2,7 +2,7 @@
 
 The first implementation of the SACUTE student information website. A pnpm workspace contains a statically prerendered React Router frontend, a modular NestJS REST API, and shared TypeScript contracts. All public content is Vietnamese; routes and source identifiers are English.
 
-Organization details follow the supplied brief. The official SVG logo, five recruitment team descriptions, email, address, Facebook, and TikTok links were supplied by the project owner and are integrated. News, scholarship, and event collections remain intentionally empty. No recruitment dates, application link, telephone number, production domain, or event photographs have been supplied. Pending information is clearly identified.
+Organization details follow the supplied brief. The supplied center avatar and cover, five recruitment team descriptions, email, address, Facebook, and TikTok links were supplied by the project owner and are integrated. Two Facebook-sourced event posts are available under Featured Events, with one and fourteen attached images respectively; the Information feed also includes all event posts under Hoạt động, while scholarships remain empty. See [mock content instructions](apps/api/mock-data/README.md). No recruitment dates, application link, telephone number, or production domain have been supplied. Pending information is clearly identified.
 
 ## Requirements
 
@@ -105,13 +105,13 @@ Desktop navigation can collapse to an accessible icon rail and expand again. Its
 
 Recruitment content lives in `apps/web/app/features/recruitment/data/recruitment-teams.ts`. The five cards link to stable English hashes, such as `/recruitment#academics`; direct links reveal and focus the correct accordion. All five complete descriptions remain in prerendered HTML, including closed sections. The supplied Học tập requirements/benefits repeat Truyền thông and carry an editorial verification note. The full 72 supplied bullets are protected by source-derived content hashes in the SEO tests.
 
-The original SVG moved from `tmp/logo-sacute.svg` to `apps/web/public/branding/logo-sacute.svg` without byte changes. Its square aspect ratio, intrinsic dimensions and alternative text are handled by `BrandLogo`. The original asset is excluded from Prettier to preserve its bytes. Contact details and social links are centralized in `packages/shared/src/index.ts`; email links use `mailto:`, external social links open in a new tab, and the address remains readable without inventing a map link.
+The latest avatar and cover are stored in `apps/web/public/branding/profile` and configured in `components/brand.tsx`. The header, footer, recruitment branding, post authors and favicon use the same avatar. On desktop, the header avatar overlaps the sidebar; the sidebar has no separate avatar. The home page starts with the supplied cover. The original SVG remains archived at `apps/web/public/branding/logo-sacute.svg` without byte changes. Contact details and social links are centralized in `packages/shared/src/index.ts`; email links use `mailto:`, external social links open in a new tab, and the address remains readable without inventing a map link.
 
 See [orange theme and recruitment delivery notes](docs/orange-theme-recruitment.md) for the enhancement scope and validation.
 
 ## Rendering, SEO, and hosting
 
-All six public routes are prerendered using React Router Framework Mode with `ssr: false`. The build uses typed local content, not HTTP requests. It produces meaningful HTML, route-specific titles/descriptions/Open Graph metadata, `.data` files for list routes, and a SPA fallback under `apps/web/build/client`.
+The six main routes and all published post detail pages (`/posts/:slug`) are prerendered using React Router Framework Mode with `ssr: false`. The build uses typed local content, not HTTP requests. It produces meaningful HTML, route-specific titles/descriptions/Open Graph metadata, `.data` files for list routes, and a SPA fallback under `apps/web/build/client`.
 
 Current builds deliberately produce `noindex, nofollow`, a `Disallow: /` robots file, and an empty sitemap. A blank production origin generates no canonical links or structured data. Once an official HTTPS origin is verified, set `VITE_SITE_ORIGIN` in `apps/web/.env`; canonical links and minimal organization JSON-LD then use that origin. Domain validation rejects local origins, credentials, paths, and HTTP.
 
@@ -131,7 +131,7 @@ The web build compiles `@sacute/shared` before React Router loads `react-router.
 
 ## API and future persistence
 
-The API exposes `GET /api/v1/health`, `/information`, `/scholarships`, and `/events`. Lists accept validated `page`, `limit`, `q`, and `category` queries. Controllers delegate to domain services; services depend on the `ContentRepository` token. A local implementation returns the same empty shared collections used for prerendering. Frontend list interaction needs no live API; the separate HTTP provider is opt-in for future browser reads.
+The API exposes `GET /api/v1/health`, `/information`, `/scholarships`, and `/events`. Lists accept validated `page`, `limit`, `q`, and `category` queries. Controllers delegate to domain services; services depend on the `ContentRepository` token. A local implementation returns the same shared collections used for prerendering. The shared build prepares post content and local images from `apps/api/mock-data`; include `apps/api/public` alongside `dist` when packaging the API. Frontend list interaction needs no live API; the separate HTTP provider is opt-in for future browser reads.
 
 Production API startup requires exact `CORS_ORIGINS` values. Wildcards and path-bearing URLs are rejected. PostgreSQL, Prisma, Supabase, authentication, and admin publishing are intentionally outside this phase.
 

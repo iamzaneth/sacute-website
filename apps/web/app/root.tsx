@@ -11,6 +11,7 @@ import {
 import { useState, type ReactNode } from 'react';
 import { Sidebar, InstitutionalHeader, Footer } from './components/layout';
 import { siteConfig } from './lib/site-config';
+import { centerProfile } from './components/brand';
 import './styles/app.css';
 import './styles/recruitment.css';
 
@@ -21,11 +22,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#f97316" />
-        <link
-          rel="icon"
-          type="image/svg+xml"
-          href="/branding/logo-sacute.svg"
-        />
+        <link rel="icon" type="image/jpeg" href={centerProfile.avatar.src} />
         <Meta />
         <Links />
         {siteConfig.origin && (
@@ -69,12 +66,12 @@ export default function App() {
     <div
       className={`site-shell${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}
     >
+      <InstitutionalHeader />
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((value) => !value)}
       />
       <div className="site-body">
-        <InstitutionalHeader />
         <main id="main-content" tabIndex={-1}>
           <Outlet />
         </main>

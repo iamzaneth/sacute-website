@@ -5,6 +5,7 @@ export default [
   route('information', 'routes/information.tsx'),
   route('scholarships', 'routes/scholarships.tsx'),
   route('events', 'routes/events.tsx'),
+  route('posts/:slug', 'routes/post.tsx'),
   route('contact', 'routes/contact.tsx'),
   route('recruitment', 'routes/recruitment.tsx'),
   route('*', 'routes/not-found.tsx'),

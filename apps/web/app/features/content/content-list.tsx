@@ -2,6 +2,7 @@ import { Form, useSearchParams } from 'react-router';
 import { BookOpen, CalendarDays, GraduationCap, Search, X } from 'lucide-react';
 import type { ContentItem, ContentKind } from '@sacute/shared';
 import { EmptyState, PageIntro } from '../../components/ui';
+import { ArticleCard } from './article-card';
 
 const copy = {
   information: {
@@ -14,7 +15,7 @@ const copy = {
     detail:
       'Nội dung đang được chuẩn bị. Các thông báo chính thức sẽ được cập nhật tại đây sau khi xác nhận.',
     icon: BookOpen,
-    categories: ['Thông báo', 'Hỗ trợ sinh viên', 'Hoạt động'],
+    categories: ['Thông báo', 'Hoạt động'],
   },
   scholarships: {
     number: '02',
@@ -33,12 +34,12 @@ const copy = {
     eyebrow: 'KẾT NỐI & THAM GIA',
     title: 'Sự kiện nổi bật',
     description:
-      'Không gian cập nhật các hoạt động sinh viên, chương trình cộng đồng và sự kiện từ SACUTE.',
+      'Theo dõi câu chuyện, hoạt động và những khoảnh khắc từ các chương trình đồng hành cùng sinh viên của SACUTE.',
     empty: 'Chưa có sự kiện được công bố',
     detail:
       'Lịch trình, địa điểm và hướng dẫn tham gia sẽ xuất hiện khi có thông tin chính thức. Hẹn gặp bạn ở những cập nhật sắp tới.',
     icon: CalendarDays,
-    categories: ['Cộng đồng', 'Kỹ năng', 'Hỗ trợ sinh viên'],
+    categories: ['Xuân tình nguyện', 'Chuyến xe đoàn viên'],
   },
 };
 export function ContentList({
@@ -51,7 +52,13 @@ export function ContentList({
   const page = copy[kind];
   const [params, setParams] = useSearchParams();
   const query = params.get('q') ?? '';
-  const category = params.get('category') ?? '';
+  const category =
+    params.get('category') ?? (kind === 'information' ? 'Hoạt động' : '');
+  const hasFilters = Boolean(query || params.has('category'));
+  const categories =
+    kind === 'events'
+      ? [...new Set(items.map((item) => item.eventName ?? item.category))]
+      : page.categories;
   const visible = items.filter(
     (item) =>
       (!category || item.category === category) &&
@@ -66,7 +73,9 @@ export function ContentList({
     setParams(next, { preventScrollReset: true });
   }
   return (
-    <div className="page">
+    <div
+      className={`page${kind === 'events' || kind === 'information' ? ' content-feed-page' : ''}`}
+    >
       <PageIntro number={page.number} eyebrow={page.eyebrow} title={page.title}>
         {page.description}
       </PageIntro>
@@ -81,7 +90,9 @@ export function ContentList({
             id="content-search"
             name="q"
             defaultValue={query}
-            placeholder="Tìm kiếm nội dung…"
+            placeholder={
+              kind === 'events' ? 'Tìm bài viết sự kiện…' : 'Tìm kiếm nội dung…'
+            }
             maxLength={200}
           />
           {category && <input type="hidden" name="category" value={category} />}
@@ -94,19 +105,23 @@ export function ContentList({
       <div
         className="filter-tabs"
         role="group"
-        aria-label="Lọc theo chuyên mục"
+        aria-label={
+          kind === 'events' ? 'Lọc theo sự kiện' : 'Lọc theo chuyên mục'
+        }
       >
-        {['', ...page.categories].map((value) => (
-          <button
-            key={value}
-            onClick={() => selectCategory(value)}
-            aria-pressed={value === category}
-            className={value === category ? 'selected' : ''}
-          >
-            {value || 'Tất cả'}
-          </button>
-        ))}
-        {(query || category) && (
+        {(kind === 'information' ? categories : ['', ...categories]).map(
+          (value) => (
+            <button
+              key={value}
+              onClick={() => selectCategory(value)}
+              aria-pressed={value === category}
+              className={value === category ? 'selected' : ''}
+            >
+              {value || 'Tất cả'}
+            </button>
+          ),
+        )}
+        {hasFilters && (
           <button className="clear-filters" onClick={() => setParams({})}>
             <X size={14} aria-hidden="true" />
             Xóa bộ lọc
@@ -117,18 +132,7 @@ export function ContentList({
         {visible.length ? (
           <div className="article-list">
             {visible.map((item) => (
-              <article key={item.id}>
-                <p className="eyebrow">{item.category}</p>
-                <h2>{item.title}</h2>
-                {item.publishedAt && (
-                  <time dateTime={item.publishedAt}>
-                    {new Intl.DateTimeFormat('vi-VN', {
-                      timeZone: 'Asia/Ho_Chi_Minh',
-                    }).format(new Date(item.publishedAt))}
-                  </time>
-                )}
-                <p>{item.summary}</p>
-              </article>
+              <ArticleCard key={item.id} item={item} />
             ))}
           </div>
         ) : (
@@ -143,13 +147,15 @@ export function ContentList({
           </EmptyState>
         )}
       </div>
-      <aside className="information-note">
-        <span className="tiny-dot" />
-        <p>
-          Chỉ những thông tin đã được xác nhận mới được công bố. Website hiện
-          đang trong giai đoạn hoàn thiện nội dung.
-        </p>
-      </aside>
+      {kind !== 'events' && (
+        <aside className="information-note">
+          <span className="tiny-dot" />
+          <p>
+            Chỉ những thông tin đã được xác nhận mới được công bố. Website hiện
+            đang trong giai đoạn hoàn thiện nội dung.
+          </p>
+        </aside>
+      )}
     </div>
   );
 }

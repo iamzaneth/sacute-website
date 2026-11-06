@@ -1,16 +1,29 @@
 import { Link } from 'react-router';
 import { organization } from '@sacute/shared';
 
-export const logoPath = '/branding/logo-sacute.svg';
+export const centerProfile = {
+  cover: {
+    src: '/branding/profile/background.png',
+    width: 960,
+    height: 360,
+    alt: 'Ảnh bìa SACUTE — Compassion & Fulfillment, các hoạt động tư vấn và hỗ trợ sinh viên.',
+  },
+  avatar: {
+    src: '/branding/profile/avatar.jpg',
+    width: 200,
+    height: 200,
+    alt: 'Ảnh đại diện Trung tâm Tư vấn và Hỗ trợ Sinh viên SACUTE',
+  },
+} as const;
 
 export function BrandLogo({ className = '' }: { className?: string }) {
   return (
     <img
       className={`brand-logo ${className}`}
-      src={logoPath}
-      width={258}
-      height={258}
-      alt="Logo SACUTE — Trung tâm Tư vấn và Hỗ trợ Sinh viên"
+      src={centerProfile.avatar.src}
+      width={centerProfile.avatar.width}
+      height={centerProfile.avatar.height}
+      alt={centerProfile.avatar.alt}
       decoding="async"
     />
   );
@@ -27,7 +40,7 @@ export function Brand({
       to="/"
       aria-label="SACUTE — Trang chủ"
     >
-      <BrandLogo />
+      {variant !== 'drawer' && <BrandLogo />}
       <span className="brand-caption">
         <strong>SACUTE</strong>
         <span>

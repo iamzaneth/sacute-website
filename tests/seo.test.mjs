@@ -15,6 +15,26 @@ const routes = [
   '/contact',
   '/recruitment',
 ];
+test('post detail pages are prerendered with complete content and unique metadata', async () => {
+  for (const slug of ['xuan-tinh-nguyen-2026', 'chuyen-xe-doan-vien-2026']) {
+    const metadata = JSON.parse(
+      await readFile(
+        `apps/api/mock-data/posts/events/${slug}/metadata.json`,
+        'utf8',
+      ),
+    );
+    const html = await readFile(
+      `apps/web/build/client/posts/${slug}/index.html`,
+      'utf8',
+    );
+    assert.ok(html.includes(`<title>${metadata.title} | SACUTE</title>`));
+    assert.match(html, /<h1[^>]*>/);
+    assert.ok(html.includes(metadata.publishedAt));
+    assert.ok(html.includes(metadata.source.url.replace(/&/g, '&amp;')));
+    assert.ok(html.includes(metadata.tags[0]));
+    await readFile(`apps/web/build/client/posts/${slug}.data`);
+  }
+});
 test('SEO defaults keep previews and pending pages out of search engines', () => {
   assert.match(buildSeoFiles({}).robots, /Disallow: \//);
   assert.doesNotMatch(buildSeoFiles({}).sitemap, /<loc>/);

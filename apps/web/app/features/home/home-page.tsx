@@ -1,6 +1,5 @@
 import { Link } from 'react-router';
 import {
-  ArrowDown,
   ArrowRight,
   ArrowUpRight,
   Bell,
@@ -8,11 +7,12 @@ import {
   CalendarDays,
   Check,
   GraduationCap,
-  HeartHandshake,
   Users,
 } from 'lucide-react';
 import { ActionLink, EmptyState, SectionHeading } from '../../components/ui';
-import { StudentIllustration } from './student-illustration';
+import { localContent } from '@sacute/shared';
+import { ArticleCard } from '../content/article-card';
+import { centerProfile } from '../../components/brand';
 
 const destinations = [
   {
@@ -40,41 +40,34 @@ const destinations = [
 export function HomePage() {
   return (
     <div className="page home-page">
-      <div className="welcome-line">
-        <span>
-          <span className="tiny-dot" />
-          CHÀO MỪNG BẠN ĐẾN VỚI SACUTE
-        </span>
-        <a href="#explore">
-          Cùng khám phá <ArrowDown size={14} aria-hidden="true" />
-        </a>
-      </div>
-      <section className="hero" aria-labelledby="hero-title">
-        <div className="hero-copy">
-          <p className="eyebrow">TRUNG TÂM TƯ VẤN VÀ HỖ TRỢ SINH VIÊN</p>
-          <h1 id="hero-title">
-            Thông tin & hỗ trợ
-            <br />
-            <span>cho sinh viên.</span>
-          </h1>
-          <p className="hero-description">
-            Một nơi để tìm thông tin, khám phá hoạt động và kết nối với Trung
-            tâm Tư vấn và Hỗ trợ Sinh viên.
-          </p>
-          <div className="hero-actions">
-            <ActionLink to="/information">Khám phá thông tin</ActionLink>
-            <Link className="hero-contact" to="/contact">
-              Liên hệ SACUTE <ArrowUpRight size={17} aria-hidden="true" />
-            </Link>
-          </div>
-          <div className="hero-footnote">
-            <span className="mini-symbol">
-              <HeartHandshake size={18} aria-hidden="true" />
+      <section
+        className="about-strip center-profile"
+        aria-labelledby="center-profile-title"
+      >
+        <img
+          {...centerProfile.cover}
+          className="center-profile-cover"
+          fetchPriority="high"
+        />
+        <div className="about-label">
+          <div>
+            <span className="eyebrow">
+              TRUNG TÂM TƯ VẤN VÀ HỖ TRỢ SINH VIÊN
             </span>
-            <span>Dành cho hành trình sinh viên của bạn</span>
+            <h1 id="center-profile-title">SACUTE — Đồng hành cùng sinh viên</h1>
           </div>
         </div>
-        <StudentIllustration />
+        <div>
+          <p>
+            Trung tâm Tư vấn và Hỗ trợ Sinh viên thuộc Trường Đại học Công nghệ
+            Kỹ thuật TP.HCM. Website là không gian tổng hợp thông tin và kết nối
+            dành cho sinh viên.
+          </p>
+          <Link className="text-link" to="/information">
+            Tìm hiểu thông tin từ SACUTE{' '}
+            <ArrowRight size={17} aria-hidden="true" />
+          </Link>
+        </div>
       </section>
       <section
         className="destinations"
@@ -95,26 +88,6 @@ export function HomePage() {
           </Link>
         ))}
       </section>
-      <section className="about-strip">
-        <div className="about-label">
-          <span className="eyebrow">VỀ CHÚNG MÌNH</span>
-          <h2>
-            Xin chào,
-            <br /> đây là SACUTE<span>.</span>
-          </h2>
-        </div>
-        <div>
-          <p>
-            Trung tâm Tư vấn và Hỗ trợ Sinh viên thuộc Trường Đại học Công nghệ
-            Kỹ thuật TP.HCM. Website là không gian tổng hợp thông tin và kết nối
-            dành cho sinh viên.
-          </p>
-          <Link className="text-link" to="/information">
-            Tìm hiểu thông tin từ SACUTE{' '}
-            <ArrowRight size={17} aria-hidden="true" />
-          </Link>
-        </div>
-      </section>
       <section className="latest-section">
         <SectionHeading
           eyebrow="CẬP NHẬT TỪ SACUTE"
@@ -122,10 +95,14 @@ export function HomePage() {
           to="/information"
         />
         <div className="latest-grid">
-          <EmptyState icon={Bell} title="Thông tin mới đang được chuẩn bị">
-            Các thông báo sẽ xuất hiện tại đây sau khi nội dung chính thức được
-            xác nhận.
-          </EmptyState>
+          {localContent.information.length ? (
+            <ArticleCard item={localContent.information[0]} preview />
+          ) : (
+            <EmptyState icon={Bell} title="Thông tin mới đang được chuẩn bị">
+              Các thông báo sẽ xuất hiện tại đây sau khi nội dung chính thức
+              được xác nhận.
+            </EmptyState>
+          )}
           <aside className="update-note">
             <span className="note-label">
               <Check size={14} aria-hidden="true" />
@@ -168,13 +145,42 @@ export function HomePage() {
             to="/events"
             linkLabel="Khám phá"
           />
-          <EmptyState
-            compact
-            icon={CalendarDays}
-            title="Chờ những hoạt động sắp tới"
-          >
-            Lịch hoạt động sẽ được cập nhật sau khi xác nhận.
-          </EmptyState>
+          {localContent.events.length ? (
+            <div className="home-events">
+              {localContent.events.slice(0, 2).map((item) => (
+                <Link
+                  key={item.id}
+                  className="home-event"
+                  to={`/posts/${item.slug}`}
+                >
+                  {item.images?.[0] && (
+                    <img
+                      src={item.images[0].url}
+                      alt=""
+                      width={112}
+                      height={90}
+                      loading="lazy"
+                    />
+                  )}
+                  <div>
+                    <p className="eyebrow">{item.eventName}</p>
+                    <h3>{item.title}</h3>
+                    <span className="text-link">
+                      Đọc bài viết <ArrowUpRight size={15} aria-hidden="true" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              compact
+              icon={CalendarDays}
+              title="Chờ những hoạt động sắp tới"
+            >
+              Lịch hoạt động sẽ được cập nhật sau khi xác nhận.
+            </EmptyState>
+          )}
         </section>
       </div>
       <section className="recruitment-banner">

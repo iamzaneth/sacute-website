@@ -1,4 +1,14 @@
 import type { Config } from '@react-router/dev/config';
-import { publicRoutes } from '@sacute/shared';
+import { publicRoutes, localContent } from '@sacute/shared';
 
-export default { ssr: false, prerender: [...publicRoutes] } satisfies Config;
+export default {
+  ssr: false,
+  prerender: [
+    ...publicRoutes,
+    ...new Set(
+      Object.values(localContent)
+        .flat()
+        .map((item) => `/posts/${item.slug}`),
+    ),
+  ],
+} satisfies Config;

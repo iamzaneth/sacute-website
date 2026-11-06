@@ -25,7 +25,7 @@ for (const width of [320, 360, 390, 768, 1024, 1366, 1440, 1920, 2560]) {
         ),
       ).toBe(true);
       await expect(page.locator('main')).toBeVisible();
-      const footer = page.locator('footer');
+      const footer = page.locator('footer.footer');
       await expect(footer.locator('.brand-caption > span')).toHaveText(
         'Trung tâm Tư vấn và Hỗ trợ Sinh viên',
       );
@@ -147,6 +147,24 @@ for (const width of [1024, 1366, 1920]) {
       name: 'Thanh điều hướng',
     });
     const initialWidth = (await sidebar.boundingBox())!.width;
+    await expect(sidebar.locator('img')).toHaveCount(0);
+    const headerAvatar = page.locator('.institution-header .header-logo img');
+    await expect(headerAvatar).toHaveAttribute(
+      'src',
+      '/branding/profile/avatar.jpg',
+    );
+    async function expectSharedAvatar() {
+      const avatar = (await headerAvatar.boundingBox())!;
+      const header = (await page.locator('.institution-header').boundingBox())!;
+      const navigation = (await sidebar.boundingBox())!;
+      expect(avatar.x).toBeGreaterThanOrEqual(navigation.x);
+      expect(avatar.x + avatar.width).toBeLessThanOrEqual(
+        navigation.x + navigation.width,
+      );
+      expect(avatar.y).toBeLessThan(header.y + header.height);
+      expect(avatar.y + avatar.height).toBeGreaterThan(navigation.y);
+    }
+    await expectSharedAvatar();
     await sidebar
       .getByRole('button', { name: 'Thu gọn thanh điều hướng' })
       .click();
@@ -157,6 +175,7 @@ for (const width of [1024, 1366, 1920]) {
     await expect
       .poll(async () => (await sidebar.boundingBox())!.width)
       .toBe(84);
+    await expectSharedAvatar();
     await expect
       .poll(async () => (await page.locator('.site-body').boundingBox())!.x)
       .toBe(84);
@@ -285,6 +304,15 @@ test('search and filters update the URL, reset, and recover empty results', asyn
   page,
 }) => {
   await page.goto('/information');
+  const filters = page.getByRole('group', { name: 'Lọc theo chuyên mục' });
+  await expect(filters.getByRole('button')).toHaveText([
+    'Thông báo',
+    'Hoạt động',
+  ]);
+  await expect(
+    filters.getByRole('button', { name: 'Hoạt động', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.article-card')).toHaveCount(2);
   await page.getByLabel('Tìm kiếm nội dung').fill('học tập');
   await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).click();
   await expect(page).toHaveURL(/q=/);
@@ -293,10 +321,17 @@ test('search and filters update the URL, reset, and recover empty results', asyn
   ).toBeVisible();
   await page.getByRole('button', { name: 'Thông báo', exact: true }).click();
   await expect(page).toHaveURL(/category=/);
+  await expect(page.locator('.article-card')).toHaveCount(0);
   await page.getByRole('button', { name: 'Xóa bộ lọc' }).click();
   await expect(page).toHaveURL('/information');
+  await expect(page.locator('.article-card')).toHaveCount(2);
   await expect(
-    page.getByRole('heading', { name: 'Chưa có thông báo được công bố' }),
+    page.getByRole('heading', { name: 'Chiến dịch Xuân Tình Nguyện 2026' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', {
+      name: 'Lễ khởi hành Chuyến xe đoàn viên 2026',
+    }),
   ).toBeVisible();
 });
 test('FAQs expand and unknown routes have a functional HTTP 404 fallback', async ({
@@ -330,9 +365,18 @@ test('internal links and built assets resolve', async ({ page, request }) => {
       links.add(href);
     const missingImages = await page
       .locator('img')
-      .evaluateAll((elements) =>
-        elements.some((image) => !image.complete || image.naturalWidth === 0),
-      );
+      .evaluateAll(async (elements) => {
+        // Request off-screen attachments too before checking for broken assets.
+        await Promise.all(
+          elements.map((image) => {
+            image.loading = 'eager';
+            return image.decode();
+          }),
+        );
+        return elements.some(
+          (image) => !image.complete || image.naturalWidth === 0,
+        );
+      });
     expect(missingImages).toBe(false);
   }
   for (const href of links)

@@ -1,3 +1,5 @@
+import { mockContent } from './generated/mock-content';
+
 export const organization = {
   shortName: 'SACUTE',
   name: 'Trung tâm Tư vấn và Hỗ trợ Sinh viên',
@@ -31,13 +33,28 @@ export const navigation: readonly { path: PublicPath; label: string }[] = [
   { path: '/recruitment', label: 'Tuyển thành viên' },
 ];
 
+export interface PostImage {
+  url: string;
+  alt: string;
+  width: number;
+  height: number;
+}
 export interface ContentItem {
   id: string;
   slug: string;
   title: string;
+  originalTitle?: string;
+  eventName?: string;
   summary: string;
   category: string;
   publishedAt?: string;
+  content?: string;
+  images?: readonly PostImage[];
+  publishedAtPrecision?: 'date' | 'datetime';
+  authorName?: string;
+  authorUrl?: string;
+  sourceUrl?: string;
+  tags?: readonly string[];
 }
 export interface Information extends ContentItem {
   kind: 'information';
@@ -53,6 +70,8 @@ export interface Scholarship extends ContentItem {
 export interface StudentEvent extends ContentItem {
   kind: 'event';
   startsAt?: string;
+  startsOn?: string;
+  endsOn?: string;
   location?: string;
   imageUrl?: string;
   status: 'upcoming' | 'ongoing' | 'ended';
@@ -80,11 +99,21 @@ export interface ListResponse<T> {
   };
 }
 
-// Intentionally empty: no official announcements or schedules were supplied.
+// Prepared from apps/api/mock-data for the API and static prerendering.
 export const localContent: { [K in ContentKind]: readonly ContentMap[K][] } = {
-  information: [],
-  scholarships: [],
-  events: [],
+  ...mockContent,
+  information: [
+    ...mockContent.information,
+    ...mockContent.events.map((item) => ({
+      ...item,
+      kind: 'information' as const,
+      category: 'Hoạt động',
+    })),
+  ].sort(
+    (a, b) =>
+      Date.parse(b.publishedAt ?? '1970-01-01') -
+      Date.parse(a.publishedAt ?? '1970-01-01'),
+  ),
 };
 
 export function listContent<T extends ContentItem>(

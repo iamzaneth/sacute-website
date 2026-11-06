@@ -11,3 +11,7 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 *.log
+tmp/
+packages/shared/src/generated/
+apps/web/public/media/mock/
+apps/api/public/media/mock/
