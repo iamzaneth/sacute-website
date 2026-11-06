@@ -54,7 +54,7 @@ export function ContentList({
   const query = params.get('q') ?? '';
   const category =
     params.get('category') ?? (kind === 'information' ? 'Hoạt động' : '');
-  const hasFilters = Boolean(query || params.has('category'));
+  const hasFilters = Boolean(query || category);
   const categories =
     kind === 'events'
       ? [...new Set(items.map((item) => item.eventName ?? item.category))]
@@ -68,8 +68,8 @@ export function ContentList({
   );
   function selectCategory(value: string) {
     const next = new URLSearchParams(params);
-    if (value) next.set('category', value);
-    else next.delete('category');
+    // An explicit empty category distinguishes “all” from the initial default.
+    next.set('category', value);
     setParams(next, { preventScrollReset: true });
   }
   return (
@@ -95,8 +95,10 @@ export function ContentList({
             }
             maxLength={200}
           />
-          {category && <input type="hidden" name="category" value={category} />}
-          <button type="submit">Tìm kiếm</button>
+          <input type="hidden" name="category" value={category} />
+          <button className="button button-primary" type="submit">
+            Tìm kiếm
+          </button>
         </Form>
         <span className="result-count" aria-live="polite">
           {visible.length} bài viết
@@ -109,20 +111,23 @@ export function ContentList({
           kind === 'events' ? 'Lọc theo sự kiện' : 'Lọc theo chuyên mục'
         }
       >
-        {(kind === 'information' ? categories : ['', ...categories]).map(
-          (value) => (
-            <button
-              key={value}
-              onClick={() => selectCategory(value)}
-              aria-pressed={value === category}
-              className={value === category ? 'selected' : ''}
-            >
-              {value || 'Tất cả'}
-            </button>
-          ),
-        )}
+        {['', ...categories].map((value) => (
+          <button
+            key={value}
+            onClick={() => selectCategory(value)}
+            aria-pressed={value === category}
+            className={value === category ? 'selected' : ''}
+          >
+            {value || 'Tất cả'}
+          </button>
+        ))}
         {hasFilters && (
-          <button className="clear-filters" onClick={() => setParams({})}>
+          <button
+            className="clear-filters"
+            onClick={() =>
+              setParams({ category: '' }, { preventScrollReset: true })
+            }
+          >
             <X size={14} aria-hidden="true" />
             Xóa bộ lọc
           </button>

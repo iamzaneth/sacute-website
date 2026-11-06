@@ -312,8 +312,10 @@ test('search and filters update the URL, reset, and recover empty results', asyn
   await page.goto('/information');
   const filters = page.getByRole('group', { name: 'Lọc theo chuyên mục' });
   await expect(filters.getByRole('button')).toHaveText([
+    'Tất cả',
     'Thông báo',
     'Hoạt động',
+    'Xóa bộ lọc',
   ]);
   await expect(
     filters.getByRole('button', { name: 'Hoạt động', exact: true }),
@@ -329,7 +331,10 @@ test('search and filters update the URL, reset, and recover empty results', asyn
   await expect(page).toHaveURL(/category=/);
   await expect(page.locator('.article-card')).toHaveCount(0);
   await page.getByRole('button', { name: 'Xóa bộ lọc' }).click();
-  await expect(page).toHaveURL('/information');
+  await expect(page).toHaveURL('/information?category=');
+  await expect(
+    filters.getByRole('button', { name: 'Tất cả', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.article-card')).toHaveCount(2);
   await expect(
     page.getByRole('heading', { name: 'Chiến dịch Xuân Tình Nguyện 2026' }),
@@ -433,7 +438,7 @@ test('skip link and search retain visible keyboard focus on narrow screens', asy
   const reset = page.getByRole('button', { name: 'Xóa bộ lọc' });
   await reset.focus();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL('/information');
+  await expect(page).toHaveURL('/information?category=');
 });
 
 test('drawer remains accessible with reduced motion and forced colors', async ({
@@ -490,4 +495,45 @@ test('content reflows with 200 percent text size', async ({ page }) => {
     ).toBe(true);
     await expect(page.locator('h1')).toBeVisible();
   }
+});
+
+test('explicit all categories survives search, reload, and browser history', async ({
+  page,
+}) => {
+  await page.goto('/information');
+  const filters = page.getByRole('group', { name: 'Lọc theo chuyên mục' });
+  const all = filters.getByRole('button', { name: 'Tất cả', exact: true });
+  const activity = filters.getByRole('button', {
+    name: 'Hoạt động',
+    exact: true,
+  });
+  await expect(activity).toHaveAttribute('aria-pressed', 'true');
+  await all.click();
+  await expect(all).toHaveAttribute('aria-pressed', 'true');
+  await expect(page).toHaveURL('/information?category=');
+  await page.getByLabel('Tìm kiếm nội dung').fill('đoàn viên');
+  await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).click();
+  await expect(page.locator('.result-count')).toHaveText('1 bài viết');
+  await expect(all).toHaveAttribute('aria-pressed', 'true');
+  await page.reload();
+  await expect(all).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel('Tìm kiếm nội dung')).toHaveValue('đoàn viên');
+  await page.getByRole('button', { name: 'Xóa bộ lọc' }).click();
+  await expect(page.locator('.result-count')).toHaveText('2 bài viết');
+  await expect(page.getByLabel('Tìm kiếm nội dung')).toHaveValue('');
+  await expect(all).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Xóa bộ lọc' })).toHaveCount(0);
+  await page.goBack();
+  await expect(page.getByLabel('Tìm kiếm nội dung')).toHaveValue('đoàn viên');
+  await expect(page.locator('.result-count')).toHaveText('1 bài viết');
+  await page.goForward();
+  await expect(page.locator('.result-count')).toHaveText('2 bài viết');
+  await page.goto('/scholarships?q=missing&category=Học+bổng');
+  await page.getByRole('button', { name: 'Xóa bộ lọc' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Tất cả', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    page.getByRole('heading', { name: 'Chưa có học bổng được công bố' }),
+  ).toBeVisible();
 });
