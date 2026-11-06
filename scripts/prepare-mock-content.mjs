@@ -28,8 +28,8 @@ for (const target of [
   await rm(path.join(root, target), { recursive: true, force: true });
 }
 
-// Only publish explicitly selected fields and image files. The Facebook HTML
-// stays in tmp/ and is never copied into the public build.
+// Only publish explicitly selected fields and image files from the canonical
+// mock-data source; raw Facebook HTML is never part of the public build.
 for (const kind of Object.keys(collection)) {
   const directory = path.join(posts, kind);
   const entries = await readdir(directory, { withFileTypes: true }).catch(

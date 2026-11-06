@@ -9,7 +9,7 @@ Base path: `/api/v1`. No authentication or write endpoints are implemented. All 
 | `GET /scholarships` | Paginated `Scholarship` records                           |
 | `GET /events`       | Paginated `StudentEvent` records                          |
 
-Lists currently return:
+Lists use this envelope (an empty result is shown):
 
 ```json
 {
@@ -39,6 +39,6 @@ Validation and HTTP errors use:
 
 `message` may be a string or a string array. Unknown routes return HTTP 404 in the same envelope. NestJS retains its default handling for unexpected internal exceptions; stack traces are not sent to clients.
 
-All content types are defined in `packages/shared/src/index.ts`. No dynamic detail endpoints are advertised. Add meaningful, approved detail content before exposing detail routes.
+All content types are defined in `packages/shared/src/index.ts`. The API has no dynamic detail endpoints; frontend `/posts/:slug` pages are prerendered from the same approved local content.
 
 CORS responds only for exact configured origins. It is a browser access policy, not authentication. Set `CORS_ORIGINS` to a comma-separated list of exact HTTP(S) origins; production startup fails if it is absent. `PORT` defaults to 3001 and must be from 1–65535. Each API process loads `apps/api/.env` when started with the documented workspace commands.

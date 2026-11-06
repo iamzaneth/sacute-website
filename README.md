@@ -1,6 +1,6 @@
 # SACUTE Web
 
-The first implementation of the SACUTE student information website. A pnpm workspace contains a statically prerendered React Router frontend, a modular NestJS REST API, and shared TypeScript contracts. All public content is Vietnamese; routes and source identifiers are English.
+The SACUTE student information website. A pnpm workspace contains a statically prerendered React Router frontend, a modular NestJS REST API, and shared TypeScript contracts. All public content is Vietnamese; routes and source identifiers are English.
 
 Organization details follow the supplied brief. The supplied center avatar and cover, five recruitment team descriptions, email, address, Facebook, and TikTok links were supplied by the project owner and are integrated. Two Facebook-sourced event posts are available under Featured Events, with one and fourteen attached images respectively; the Information feed also includes all event posts under Hoạt động, while scholarships remain empty. See [mock content instructions](apps/api/mock-data/README.md). No recruitment dates, application link, telephone number, or production domain have been supplied. Pending information is clearly identified.
 
@@ -82,7 +82,7 @@ sacute-website/                 # package name: sacute-web
 │       └── test/               # HTTP integration and repository tests
 ├── packages/shared/src/        # organization, navigation, contracts, local data
 ├── tests/                      # generated SEO checks and browser tests
-├── docs/                       # API, architecture, delivery report
+├── docs/                       # API, architecture, profile cover notes
 ├── .github/workflows/          # CI checks
 └── pnpm-workspace.yaml
 ```
@@ -91,23 +91,23 @@ sacute-website/                 # package name: sacute-web
 
 | Route           | Content                                                                                                               |
 | --------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `/`             | Hero, introduction, discovery links, latest information, scholarship/event empty states, recruitment section          |
+| `/`             | Official cover, introduction, discovery links, latest posts, scholarship status and recruitment section               |
 | `/information`  | Searchable, category-filtered announcement list                                                                       |
 | `/scholarships` | Scholarship list and pending-information state                                                                        |
-| `/events`       | Events list and pending-information state                                                                             |
+| `/events`       | Published event posts, category filters and article galleries                                                         |
 | `/contact`      | Centrally configured contact channels and explicit inactive-submission notice                                         |
 | `/recruitment`  | Five team overviews, complete job descriptions, deep-linked accordions, recruitment status, preparation steps and FAQ |
 | `*`             | Vietnamese 404 with a working home link                                                                               |
 
-Search and category filters persist in URL query parameters and support browser back/forward. Native HTML dialog navigation includes explicit focus cycling, Escape dismissal, and focus restoration. The interface includes a skip link, visible focus, reduced-motion support, and responsive grids. No contact or application submissions are accepted.
+Search and category filters persist in URL query parameters and support browser back/forward. Information initially selects Hoạt động; Tất cả and clearing filters use an explicit empty category to show all content. Native HTML dialog navigation includes explicit focus cycling, Escape dismissal, and focus restoration. The interface includes a skip link, visible focus, reduced-motion support, and responsive grids. No contact or application submissions are accepted.
 
 Desktop navigation can collapse to an accessible icon rail and expand again. Its state survives client-side route changes and resets on a full page reload. At smaller widths, navigation opens from the left and retains focus trapping and Escape dismissal. The footer uses the center's full Vietnamese name and groups the address, email, Facebook and TikTok together; it contains no student-information navigation link.
 
 Recruitment content lives in `apps/web/app/features/recruitment/data/recruitment-teams.ts`. The five cards link to stable English hashes, such as `/recruitment#academics`; direct links reveal and focus the correct accordion. All five complete descriptions remain in prerendered HTML, including closed sections. The supplied Học tập requirements/benefits repeat Truyền thông and carry an editorial verification note. The full 72 supplied bullets are protected by source-derived content hashes in the SEO tests.
 
-The latest avatar and cover are stored in `apps/web/public/branding/profile` and configured in `components/brand.tsx`. The header, footer, recruitment branding, post authors and favicon use the same avatar. On desktop, a full-height sidebar contains the large center avatar. The header and content occupy the adjacent column and resize with the sidebar. The circular favicon is generated from the same avatar at development startup and build time. The home page starts with the supplied cover. The original SVG remains archived at `apps/web/public/branding/logo-sacute.svg` without byte changes. Contact details and social links are centralized in `packages/shared/src/index.ts`; email links use `mailto:`, external social links open in a new tab, and the address remains readable without inventing a map link.
+The latest avatar and cover are stored in `apps/web/public/branding/profile` and configured in `components/brand.tsx`. The header, footer, recruitment branding, post authors and favicon use the same avatar. On desktop, a full-height sidebar contains a compact brand lockup. The header and content occupy the adjacent column and resize with the sidebar. The circular favicon is generated from the same avatar at development startup and build time. The home page starts with the supplied cover. The original SVG remains archived at `apps/web/public/branding/logo-sacute.svg` without byte changes. Contact details and social links are centralized in `packages/shared/src/index.ts`; email links use `mailto:`, external social links open in a new tab, and the address remains readable without inventing a map link.
 
-See [orange theme and recruitment delivery notes](docs/orange-theme-recruitment.md) for the enhancement scope and validation.
+See [profile cover notes](docs/profile-cover.md) for the SVG artwork and embedded font license.
 
 ## Rendering, SEO, and hosting
 
@@ -135,4 +135,4 @@ The API exposes `GET /api/v1/health`, `/information`, `/scholarships`, and `/eve
 
 Production API startup requires exact `CORS_ORIGINS` values. Wildcards and path-bearing URLs are rejected. PostgreSQL, Prisma, Supabase, authentication, and admin publishing are intentionally outside this phase.
 
-See [API contracts](docs/api.md), [architecture and database migration](docs/architecture.md), and [delivery and validation report](docs/delivery.md).
+See [API contracts](docs/api.md) and [architecture and database migration](docs/architecture.md).

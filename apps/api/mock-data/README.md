@@ -18,10 +18,10 @@ Hai bài thuộc **Sự kiện nổi bật**. `eventName` và `category` tương
 **Xuân tình nguyện** và **Chuyến xe đoàn viên**. Ảnh là tệp đính kèm của bài viết,
 không phải ảnh nền hoặc ảnh bìa giao diện.
 
-- Bài Xuân tình nguyện: nguyên văn từ JSON nhúng trong `tmp/Facebook1.html`;
+- Bài Xuân tình nguyện: nguyên văn từ JSON nhúng trong bản HTML Facebook do chủ dự án cung cấp;
   đăng lúc 19:01:21 ngày 01/01/2026 (UTC+7); một ảnh gốc 2048 × 800.
-- Bài Chuyến xe đoàn viên: nguyên văn `tmp/2/content.txt`, người đăng và ngày
-  đăng từ `tmp/2/ben-le.txt`; đủ 14 ảnh gốc 2048 × 1369. Nguồn chỉ cho biết
+- Bài Chuyến xe đoàn viên: nguyên văn tệp nội dung do chủ dự án cung cấp; người đăng và ngày
+  đăng lấy từ ghi chú đi kèm; đủ 14 ảnh gốc 2048 × 1369. Nguồn chỉ cho biết
   ngày 07/02/2026, nên `publishedAt` giữ dạng ngày với
   `publishedAtPrecision: "date"`, không suy diễn giờ đăng. Thứ tự ảnh theo tên
   file do chưa có thứ tự album từ nguồn.
@@ -40,8 +40,8 @@ Chạy `pnpm dev` từ thư mục gốc, mở `/events`. Trang chủ liên kết
 API: `GET http://localhost:3001/api/v1/events`; hỗ trợ `q`, `category`, `page`,
 `limit` như trước. Mọi bài trong `/events` cũng tự xuất hiện tại `/information`, chuyên mục **Hoạt động**.
 Nguồn bài và ảnh chỉ lưu một lần trong `posts/events`; không cần chép bài sang
-`posts/information`. Mục Thông tin có hai bộ lọc **Thông báo** và **Hoạt động**,
-mặc định mở **Hoạt động**.
+`posts/information`. Mục Thông tin có các bộ lọc **Tất cả**, **Thông báo** và **Hoạt động**,
+mặc định mở **Hoạt động**. Xóa bộ lọc sẽ về **Tất cả**.
 
 Danh sách hiển thị thẻ gọn trong lưới tự điều chỉnh số cột theo chiều rộng. Bấm
 vào thẻ để mở `/posts/<slug>` với đầy đủ nội dung và album ảnh. Trang chi tiết
@@ -57,8 +57,10 @@ Sau khi sửa metadata/nội dung/ảnh, restart `pnpm dev` hoặc build lại.
    `apps/web/public/media/mock/`. Mỗi ảnh có URL
    `/media/mock/<collection>/<slug>/<filename>`.
 
-Không sửa file sinh tự động; chúng được Git bỏ qua. HTML và tệp đầu vào trong
-`tmp/` không được sao chép vào build công khai. Khi đóng gói API, mang theo
+Không sửa file sinh tự động; chúng được Git bỏ qua. Các tệp đầu vào tạm đã được dọn sau khi chuyển đầy đủ nội dung và ảnh vào
+`posts/`; build chỉ đọc nguồn chuẩn này, không cần thư mục `tmp/`. Các đường dẫn
+đầu vào cũ trong trường nguồn của metadata chỉ ghi nhận xuất xứ, không phải
+file cần có khi build. Khi đóng gói API, mang theo
 `apps/api/public` cùng với `dist`.
 
 Để thêm bài, tạo thư mục mới với ID/slug riêng, `kind: "event"`, `eventName`,
