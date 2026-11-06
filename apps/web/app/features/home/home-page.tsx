@@ -121,13 +121,17 @@ export function HomePage() {
             to="/scholarships"
             linkLabel="Khám phá"
           />
-          <EmptyState
-            compact
-            icon={GraduationCap}
-            title="Chưa có học bổng được công bố"
-          >
-            Thông tin học bổng đang chờ cập nhật chính thức.
-          </EmptyState>
+          {localContent.scholarships.length ? (
+            <ArticleCard item={localContent.scholarships[0]} preview />
+          ) : (
+            <EmptyState
+              compact
+              icon={GraduationCap}
+              title="Chưa có học bổng được công bố"
+            >
+              Thông tin học bổng đang chờ cập nhật chính thức.
+            </EmptyState>
+          )}
         </section>
         <section>
           <SectionHeading
