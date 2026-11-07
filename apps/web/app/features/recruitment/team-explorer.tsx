@@ -80,13 +80,13 @@ export function TeamExplorer() {
     >
       <SectionHeading
         eyebrow="TÌM NƠI PHÙ HỢP VỚI BẠN"
-        title="5 ban, nhiều cách để đóng góp"
+        title="5 ban - Nhiều cách đóng góp"
       />
       <p className="team-introduction">
         Bạn thích sáng tạo, tổ chức hay hỗ trợ sinh viên? Chọn một ban để tìm
         hiểu công việc, yêu cầu và quyền lợi tham gia.
       </p>
-      <nav className="team-overview" aria-label="Khám phá 5 ban SACUTE">
+      {/* {<nav className="team-overview" aria-label="Khám phá 5 ban SACUTE">
         {recruitmentTeams.map((team, index) => {
           const Icon = teamIcons[team.icon];
           return (
@@ -108,13 +108,13 @@ export function TeamExplorer() {
             </a>
           );
         })}
-      </nav>
+      </nav>} */}
       <div className="team-details-heading">
-        <span className="eyebrow">TÌM HIỂU TỪNG BAN</span>
+        {/* <span className="eyebrow">TÌM HIỂU TỪNG BAN</span>
         <span>
           <ArrowDownRight size={16} aria-hidden="true" />
           Mở một ban để xem chi tiết
-        </span>
+        </span> */}
       </div>
       <div className="team-details">
         {recruitmentTeams.map((team, index) => {
@@ -138,8 +138,11 @@ export function TeamExplorer() {
                   <Icon size={24} strokeWidth={1.6} aria-hidden="true" />
                 </span>
                 <span className="team-summary-copy">
-                  <span className="eyebrow">BAN 0{index + 1}</span>
+                  {/* <span className="eyebrow">BAN 0{index + 1}</span> */}
                   <h3>{team.name}</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#794d0b' }}>
+                    {team.shortDescription}
+                  </p>
                 </span>
                 <span className="team-disclosure-label">
                   <span className="team-expand-label">Xem chi tiết</span>
@@ -152,7 +155,7 @@ export function TeamExplorer() {
                 />
               </summary>
               <div className="team-detail-body">
-                <p className="team-detail-intro">{team.shortDescription}</p>
+                {/* <p className="team-detail-intro">{team.shortDescription}</p> */}
                 <div className="team-content-columns">
                   <TeamContentSection
                     title="Mô tả công việc"
