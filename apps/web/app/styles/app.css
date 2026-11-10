@@ -105,6 +105,13 @@ h3 {
   flex-direction: column;
   overflow-y: auto;
   transition: width var(--duration-sidebar) var(--ease-sidebar);
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar-toggle {
