@@ -1,4 +1,3 @@
-
 /**
  * SACUTE: migrate canonical apps/api/mock-data/posts into Supabase.
  *
@@ -18,12 +17,12 @@ const defaultRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const args = process.argv.slice(2);
 const allowedFlags = ['--dry-run', '--apply', '--help'];
 const other = args.filter(
-  (x) => !allowedFlags.includes(x) && !x.startsWith('--root=')
+  (x) => !allowedFlags.includes(x) && !x.startsWith('--root='),
 );
 
 if (other.length || (args.includes('--apply') && args.includes('--dry-run'))) {
   throw new Error(
-    `Invalid arguments: ${other.join(' ') || '--apply + --dry-run'}`
+    `Invalid arguments: ${other.join(' ') || '--apply + --dry-run'}`,
   );
 }
 
@@ -37,15 +36,13 @@ if (args.includes('--help')) {
 Optional: --root=/absolute/path/to/repo
 
 --apply creates missing posts/details/media only.
-It never deletes or updates existing records or overwrites Storage files.`
+It never deletes or updates existing records or overwrites Storage files.`,
   );
   process.exit(0);
 }
 
 const rootArg = args.find((arg) => arg.startsWith('--root='));
-const root = rootArg
-  ? path.resolve(rootArg.slice(7))
-  : defaultRoot;
+const root = rootArg ? path.resolve(rootArg.slice(7)) : defaultRoot;
 
 const apply = args.includes('--apply');
 const contentRoot = path.join(root, 'apps/api/mock-data/posts');
@@ -73,7 +70,7 @@ const assert = (condition, description) => {
 const requireString = (value, name) => {
   assert(
     typeof value === 'string' && value.trim().length > 0,
-    `Missing ${name}`
+    `Missing ${name}`,
   );
   return value;
 };
@@ -83,7 +80,7 @@ const optionalDate = (value, name) => {
 
   assert(
     typeof value === 'string' && Number.isFinite(Date.parse(value)),
-    `Invalid ${name}: ${value}`
+    `Invalid ${name}: ${value}`,
   );
 
   return value;
@@ -94,9 +91,8 @@ const optionalDateTime = (value, name) => {
   if (result === null) return null;
 
   assert(
-    /T\d{2}:\d{2}/.test(result) &&
-      /(Z|[+-]\d{2}:\d{2})$/.test(result),
-    `${name} must be ISO datetime with timezone offset: ${value}`
+    /T\d{2}:\d{2}/.test(result) && /(Z|[+-]\d{2}:\d{2})$/.test(result),
+    `${name} must be ISO datetime with timezone offset: ${value}`,
   );
 
   return result;
@@ -113,14 +109,12 @@ async function loadSources() {
       withFileTypes: true,
     });
 
-    for (const entry of entries.sort((a, b) =>
-      a.name.localeCompare(b.name)
-    )) {
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
       if (!entry.isDirectory()) continue;
 
       const folder = path.join(collectionPath, entry.name);
       const m = JSON.parse(
-        await readFile(path.join(folder, 'metadata.json'), 'utf8')
+        await readFile(path.join(folder, 'metadata.json'), 'utf8'),
       );
 
       assert(m.kind === expectedKind, `Incorrect kind in ${folder}`);
@@ -132,14 +126,13 @@ async function loadSources() {
       requireString(m.category, `${folder}/category`);
 
       assert(
-        m.slug === entry.name &&
-          /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(m.slug),
-        `Invalid slug/path for ${folder}`
+        m.slug === entry.name && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(m.slug),
+        `Invalid slug/path for ${folder}`,
       );
 
       assert(
         !ids.has(m.id) && !slugs.has(m.slug),
-        `Duplicate id/slug: ${m.slug}`
+        `Duplicate id/slug: ${m.slug}`,
       );
 
       ids.add(m.id);
@@ -147,18 +140,17 @@ async function loadSources() {
 
       assert(
         m.contentFile === 'content.md',
-        `Expected content.md in ${folder}`
+        `Expected content.md in ${folder}`,
       );
 
       assert(
-        m.contentFormat === 'plain-text' ||
-          m.contentFormat === 'markdown',
-        `Unsupported contentFormat in ${folder}`
+        m.contentFormat === 'plain-text' || m.contentFormat === 'markdown',
+        `Unsupported contentFormat in ${folder}`,
       );
 
       assert(
         ['published', 'draft', 'archived'].includes(m.publicationStatus),
-        `Unexpected publicationStatus in ${folder}`
+        `Unexpected publicationStatus in ${folder}`,
       );
 
       const content = (
@@ -171,13 +163,10 @@ async function loadSources() {
 
       assert(
         ['date', 'datetime'].includes(precision),
-        `Invalid publishedAtPrecision: ${folder}`
+        `Invalid publishedAtPrecision: ${folder}`,
       );
 
-      const publishedAt = optionalDate(
-        m.publishedAt,
-        `${folder}/publishedAt`
-      );
+      const publishedAt = optionalDate(m.publishedAt, `${folder}/publishedAt`);
 
       if (publishedAt && precision === 'datetime') {
         optionalDateTime(publishedAt, 'publishedAt');
@@ -186,7 +175,7 @@ async function loadSources() {
       if (publishedAt && precision === 'date') {
         assert(
           /^\d{4}-\d{2}-\d{2}$/.test(publishedAt),
-          `Date-only precision requires YYYY-MM-DD in ${folder}`
+          `Date-only precision requires YYYY-MM-DD in ${folder}`,
         );
       }
 
@@ -196,9 +185,9 @@ async function loadSources() {
         assert(
           typeof img.path === 'string' &&
             /^images\/[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp|avif)$/i.test(
-              img.path
+              img.path,
             ),
-          `Unsafe/unsupported image filename in ${folder}`
+          `Unsafe/unsupported image filename in ${folder}`,
         );
 
         const filename = path.basename(img.path);
@@ -207,7 +196,7 @@ async function loadSources() {
 
         assert(
           imageStat.isFile() && imageStat.size <= maxImageSize,
-          `Image missing/too large: ${absolutePath}`
+          `Image missing/too large: ${absolutePath}`,
         );
 
         images.push({
@@ -218,18 +207,12 @@ async function loadSources() {
           mime: mimeByExt[path.extname(filename).toLowerCase()],
           alt_text: img.alt ?? '',
           width:
-            Number.isInteger(img.width) && img.width > 0
-              ? img.width
-              : null,
+            Number.isInteger(img.width) && img.width > 0 ? img.width : null,
           height:
-            Number.isInteger(img.height) && img.height > 0
-              ? img.height
-              : null,
+            Number.isInteger(img.height) && img.height > 0 ? img.height : null,
           source_metadata: {
             original_path: img.path,
-            ...(img.sourceFile
-              ? { original_source_file: img.sourceFile }
-              : {}),
+            ...(img.sourceFile ? { original_source_file: img.sourceFile } : {}),
           },
         });
       }
@@ -281,9 +264,7 @@ function postRow(item) {
     source_url: m.source?.url ?? null,
     source_platform: m.source?.platform ?? null,
     source_metadata: {
-      ...(m.source?.postId
-        ? { source_post_id: m.source.postId }
-        : {}),
+      ...(m.source?.postId ? { source_post_id: m.source.postId } : {}),
       ...(typeof m.source?.contentComplete === 'boolean'
         ? { content_complete: m.source.contentComplete }
         : {}),
@@ -293,9 +274,7 @@ function postRow(item) {
     },
     featured: m.featured === true,
     status: m.publicationStatus,
-    published_on: publishedAt
-      ? publishedAt.slice(0, 10)
-      : null,
+    published_on: publishedAt ? publishedAt.slice(0, 10) : null,
     published_at: precision === 'datetime' ? publishedAt : null,
     published_at_precision: publishedAt ? precision : null,
   };
@@ -348,33 +327,29 @@ function check({ error, data }, label) {
 async function main() {
   const items = await loadSources();
 
-  const totalImages = items.reduce(
-    (sum, x) => sum + x.images.length,
-    0
-  );
+  const totalImages = items.reduce((sum, x) => sum + x.images.length, 0);
 
   const totalBytes = items.reduce(
-    (sum, x) =>
-      sum + x.images.reduce((n, img) => n + img.size, 0),
-    0
+    (sum, x) => sum + x.images.reduce((n, img) => n + img.size, 0),
+    0,
   );
 
   console.log(
     `Validated ${items.length} posts, ${totalImages} images, ` +
-      `${(totalBytes / 1048576).toFixed(2)} MiB`
+      `${(totalBytes / 1048576).toFixed(2)} MiB`,
   );
 
   for (const { m, images } of items) {
     console.log(
       ` - ${m.kind.padEnd(11)} ${m.slug} | ` +
-        `${m.publicationStatus} | ${images.length} image(s)`
+        `${m.publicationStatus} | ${images.length} image(s)`,
     );
   }
 
   if (!apply) {
     console.log(
       '\nDry-run only: NO Supabase writes were made. ' +
-        'Pass --apply to import.'
+        'Pass --apply to import.',
     );
     return;
   }
@@ -384,7 +359,7 @@ async function main() {
 
   assert(
     url && secret,
-    'Set SUPABASE_URL and SUPABASE_SECRET_KEY in apps/api/.env'
+    'Set SUPABASE_URL and SUPABASE_SECRET_KEY in apps/api/.env',
   );
 
   const parsedUrl = new URL(url);
@@ -392,12 +367,12 @@ async function main() {
   assert(
     parsedUrl.protocol === 'https:' &&
       /^https:\/\/[^/]+\.supabase\.co\/?$/.test(url),
-    'SUPABASE_URL should look like https://xxxx.supabase.co'
+    'SUPABASE_URL should look like https://xxxx.supabase.co',
   );
 
   assert(
     secret !== process.env.SUPABASE_PUBLISHABLE_KEY,
-    'Do not use the publishable key for this admin migration'
+    'Do not use the publishable key for this admin migration',
   );
 
   // Never expose the secret key in browser code.
@@ -427,14 +402,14 @@ async function main() {
         .select('id,slug,legacy_id,kind,status')
         .eq('slug', m.slug)
         .maybeSingle(),
-      `Lookup post ${m.slug}`
+      `Lookup post ${m.slug}`,
     );
 
     if (post) {
       assert(
         post.legacy_id === m.id && post.kind === m.kind,
         `Existing slug '${m.slug}' has another legacy_id/kind. ` +
-          'Resolve manually; not overwritten.'
+          'Resolve manually; not overwritten.',
       );
 
       counters.skippedPosts++;
@@ -446,7 +421,7 @@ async function main() {
           .insert(postRow(item))
           .select('id,slug,legacy_id,kind,status')
           .single(),
-        `Insert post ${m.slug}`
+        `Insert post ${m.slug}`,
       );
 
       post = rows;
@@ -463,13 +438,13 @@ async function main() {
           .select('post_id')
           .eq('post_id', post.id)
           .maybeSingle(),
-        `Lookup ${detail.table}: ${m.slug}`
+        `Lookup ${detail.table}: ${m.slug}`,
       );
 
       if (!old) {
         check(
           await db.from(detail.table).insert(detail.row),
-          `Insert ${detail.table}: ${m.slug}`
+          `Insert ${detail.table}: ${m.slug}`,
         );
         counters.details++;
       }
@@ -477,8 +452,7 @@ async function main() {
 
     for (const img of item.images) {
       // Reuse database status if an editor changed the imported post.
-      const bucket =
-        post.status === 'published' ? 'post-media' : 'draft-media';
+      const bucket = post.status === 'published' ? 'post-media' : 'draft-media';
 
       const key =
         `posts/${post.id}/` +
@@ -496,13 +470,11 @@ async function main() {
         const duplicate =
           String(result.error.statusCode) === '409' ||
           /already exists|resource already exists|duplicate/i.test(
-            result.error.message
+            result.error.message,
           );
 
         if (!duplicate) {
-          throw new Error(
-            `Upload ${bucket}/${key}: ${result.error.message}`
-          );
+          throw new Error(`Upload ${bucket}/${key}: ${result.error.message}`);
         }
       } else {
         counters.uploads++;
@@ -515,13 +487,13 @@ async function main() {
           .eq('bucket', bucket)
           .eq('storage_path', key)
           .maybeSingle(),
-        `Lookup media: ${key}`
+        `Lookup media: ${key}`,
       );
 
       if (oldMedia) {
         assert(
           oldMedia.post_id === post.id,
-          `Storage path assigned to another post: ${key}`
+          `Storage path assigned to another post: ${key}`,
         );
       } else {
         check(
@@ -536,7 +508,7 @@ async function main() {
             is_cover: img.index === 0,
             source_metadata: img.source_metadata,
           }),
-          `Insert media: ${key}`
+          `Insert media: ${key}`,
         );
 
         counters.media++;
@@ -547,7 +519,7 @@ async function main() {
   console.log(
     `\nFinished: ${JSON.stringify(counters)}\n` +
       'Existing posts/details/media are not overwritten. ' +
-      'Review in Supabase Table Editor.'
+      'Review in Supabase Table Editor.',
   );
 }
 
@@ -555,7 +527,7 @@ main().catch((error) => {
   console.error(`\nMigration stopped: ${error.message}`);
   console.error(
     'No automatic rollback across Storage and PostgreSQL. ' +
-      'Fix the issue and rerun --apply (idempotent).'
+      'Fix the issue and rerun --apply (idempotent).',
   );
   process.exitCode = 1;
 });
