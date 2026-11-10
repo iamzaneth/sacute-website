@@ -35,4 +35,12 @@ pnpm --filter @sacute/shared build
 node --env-file=apps/api/.env scripts/verify-cloud-content.mjs
 ```
 
-Các slug ở script audit chỉ là hồi quy di chuyển, không phải dữ liệu ứng dụng. Nếu biên tập viên đổi/xóa/lưu trữ bài, audit hồi quy có thể báo khác biệt hợp lệ: cần xem xét, không tự chạy import hoặc ghi đè bản cloud. Chưa có CMS hay auth/admin interface trong nhiệm vụ này.
+Các slug ở script audit chỉ là hồi quy di chuyển, không phải dữ liệu ứng dụng. Nếu biên tập viên đổi/xóa/lưu trữ bài, audit hồi quy có thể báo khác biệt hợp lệ: cần xem xét, không tự chạy import hoặc ghi đè bản cloud. Giao diện CMS riêng hiện đã được triển khai cục bộ; audit/migration production vẫn là bước vận hành thủ công.
+
+## Admin RLS migration (chưa áp dụng production)
+
+Audit chỉ đọc: `supabase/audits/admin_rls_audit.sql`. Migration đề xuất: `supabase/migrations/202611100001_private_admin_cms.sql`. Không chạy lại import, không xóa dữ liệu cũ và không tự áp dụng production SQL. Giữ `ADMIN_WRITES_ENABLED=false` cho tới khi audit grants/policies/triggers/functions, đối chiếu schema thực, thử staging và áp dụng SQL đã review thủ công. Migration bổ sung quyền admin + public published-only với restrictive guards, bảo vệ membership và Storage, và cung cấp RPC atomic SECURITY INVOKER. Xem [quy trình đầy đủ](admin-cms.md), bao gồm kiểm tra schema, uniqueness đường dẫn ảnh, kiểm thử và provisioning tài khoản.
+
+Hardening tiếp theo bắt buộc: `supabase/migrations/202611100002_admin_security_hardening.sql`. Cả gate môi trường và `public.admin_cms_settings.writes_enabled` mặc định false; SQL không bật production writes. Bản 001 mới là base read-only cho tới 002. Nếu bản 001 cũ đã được áp dụng thủ công, review/apply 002 để bổ sung guard. Không chạy lại import hoặc tự chuyển/xóa media. [Security review](security-review.md) và [phát hành ảnh riêng tư](media-publication.md).
+
+Lifecycle tiếp theo: `supabase/migrations/202611100003_post_lifecycle.sql`, chỉ sau 001 và 002 đã review. Bổ sung soft deletion, revision, timestamps/provenance, visibility và RPC; không import, xóa records/media hoặc bật ghi. Public repository mới cần migration 003; xác minh schema trước khi deploy mã tương ứng. Quy trình staging, validate FK, cập nhật policy và bật cả hai gate thủ công trong [post-lifecycle.md](post-lifecycle.md). Không áp dụng production tự động.

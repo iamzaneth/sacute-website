@@ -35,7 +35,7 @@ node --env-file=.env scripts/preview.mjs
 
 ## Nội dung và triển khai
 
-Xuất bản trong Supabase Table Editor hoặc công cụ quản trị đã được cấp quyền. Đặt `status=published`, `visible_from` phù hợp, metadata, chi tiết học bổng/sự kiện và ảnh `post-media`. Một sự kiện là một bản ghi, có thể xuất hiện ở cả trang Thông tin và Sự kiện. Không cần sửa mã nguồn hoặc build lại để xuất bản slug mới. Chưa có giao diện CMS trong thay đổi này.
+Xuất bản trong Supabase Table Editor hoặc công cụ quản trị đã được cấp quyền. Đặt `status=published`, `visible_from` phù hợp, metadata, chi tiết học bổng/sự kiện và ảnh `post-media`. Một sự kiện là một bản ghi, có thể xuất hiện ở cả trang Thông tin và Sự kiện. Không cần sửa mã nguồn hoặc build lại để xuất bản slug mới. CMS riêng tại `/admin/login`, chỉ dành cho tài khoản có `admin_profiles.role=admin`; không có liên kết trong điều hướng công khai. Mặc định chỉ đọc (`ADMIN_WRITES_ENABLED=false` và database write gate false). Cần cả ba migration đã review (001–003). CMS hỗ trợ bản nháp, đăng ngay, hẹn/đổi/hủy lịch, ẩn, lưu trữ và thùng rác/khôi phục; xóa vĩnh viễn bị tắt. Ảnh mới ở bucket riêng tư chỉ được phục vụ khi bài đã đến giờ công khai. Xem [vòng đời bài viết](docs/post-lifecycle.md). Xem [hướng dẫn CMS](docs/admin-cms.md) để audit RLS, tạo admin, áp dụng migration thủ công và bật ghi an toàn.
 
 Vercel: root `apps/web`, framework **React Router**, bỏ override Output Directory cũ `build/client`. Đặt `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` cho runtime; `VITE_SITE_ORIGIN=https://sacute.vercel.app` cho canonical và chỉ bật `VITE_ALLOW_INDEXING=true` khi duyệt cho phép lập chỉ mục. Không đặt secret/service-role key trong ứng dụng web.
 
@@ -43,3 +43,5 @@ Vercel: root `apps/web`, framework **React Router**, bỏ override Output Direct
 - [API](docs/api.md)
 - [Triển khai và khắc phục lỗi](docs/deployment.md)
 - [Xác minh và lưu trữ nguồn di chuyển](docs/migration.md)
+
+Trang chủ và feed tải nội dung động bằng skeleton, hiển thị phần tĩnh trước. Chuyển trang dùng cache RAM có giới hạn và ETag kiểm tra lại dữ liệu; hiển thị dữ liệu đã tải trong lúc kiểm tra lại ở nền, rồi loại bỏ nội dung không còn công khai. [Cơ chế loading/cache](docs/loading-and-cache.md).

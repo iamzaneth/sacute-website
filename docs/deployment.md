@@ -22,7 +22,11 @@ SEO là HTML SSR thật. Title, description, canonical (khi có origin), OG và 
 - Lỗi cấu hình: kiểm tra đúng tên biến không có tiền tố VITE, chọn đúng môi trường Vercel và redeploy sau khi sửa env; dùng publishable key, không secret. Không có mock fallback.
 - 503: kiểm tra trạng thái Supabase, URL, mạng, schema/khóa ngoại và quyền SELECT theo RLS. Log có mã an toàn `content_read_failed`/`web_content_failed`; không in biến môi trường.
 - Tập rỗng: kiểm tra status, visible_from, category và RLS. Không nhầm lifecycle_status với publication status.
-- Ảnh thiếu: kiểm tra object trong post-media, storage_path, sort_order/is_cover; không dùng draft-media cho bài công khai. Không tạo đường dẫn placeholder.
+- Ảnh thiếu: kiểm tra object trong post-media, storage_path, sort_order/is_cover; draft-media chỉ phục vụ qua guarded byte route với migration 003, không dùng URL public cho bucket này. Không tạo đường dẫn placeholder.
 - Slug mới trả HTML cũ: kiểm tra dashboard không còn Static/Vite preset hoặc Output Directory override, server functions có trong deployment; không cấu hình SPA rewrite hoặc prerender `.data`.
 - Canonical thiếu: đặt VITE_SITE_ORIGIN khi build. Chỉ bật VITE_ALLOW_INDEXING trên production đã duyệt.
 - `pnpm preview` cần env runtime đã export, hoặc `cd apps/web && node --env-file=.env scripts/preview.mjs`. `pnpm dev` tự tải `.env` của từng app. Dùng CORS localhost thích hợp khi truy cập API từ trình duyệt.
+
+## Streaming và cache khi chuyển trang
+
+Thay đổi loading/cache không cần migration mới. Vercel vẫn chạy React Router Node SSR; cần giữ streaming response và không cấu hình CDN/ISR cache cho HTML, `.data`, `/resources/content` hoặc các admin/private-media routes. Kiểm tra bằng trình duyệt thường trên mạng chậm: phần tĩnh và skeleton phải xuất hiện trước dữ liệu. Resource dùng conditional ETag với CDN no-store; anonymous visibility phải cập nhật sau hide/Trash và tại giờ hẹn. Bot SSR vẫn chờ dữ liệu để giữ SEO/HTTP status. Xem [hướng dẫn loading/cache](loading-and-cache.md).
