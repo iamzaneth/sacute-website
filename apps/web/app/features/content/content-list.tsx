@@ -42,16 +42,19 @@ const copy = {
     categories: [] as string[],
   },
 };
+import type { PublicPayloads, PublicData } from './public-data';
+import { PublicContent } from './public-content';
+import { ContentSkeleton, InlineSkeleton } from './content-skeleton';
 export function ContentList({
   kind,
-  items,
-  meta,
-  categoryOptions,
+  content,
+  cacheKey,
 }: {
   kind: ContentKind;
-  items: ContentItem[];
-  meta: ListResponse<ContentItem>['meta'];
-  categoryOptions?: string[];
+  content: PublicData<
+    PublicPayloads['information'] & { categories?: string[] }
+  > | null;
+  cacheKey: string;
 }) {
   const page = copy[kind];
   const [params, setParams] = useSearchParams();
@@ -59,15 +62,44 @@ export function ContentList({
   const category =
     params.get('category') ?? (kind === 'information' ? 'Thông báo' : '');
   const hasFilters = Boolean(query || category);
-  const categories = categoryOptions ?? page.categories;
-  const visible = items;
   function selectCategory(value: string) {
     const next = new URLSearchParams(params);
-    // An explicit empty category distinguishes “all” from the initial default.
     next.set('category', value);
     next.delete('page');
     setParams(next, { preventScrollReset: true });
   }
+  const filters = (categories: string[], loading = false) => (
+    <div
+      className="filter-tabs"
+      role="group"
+      aria-label={
+        kind === 'events' ? 'Lọc theo sự kiện' : 'Lọc theo chuyên mục'
+      }
+    >
+      {['', ...categories].map((value) => (
+        <button
+          key={value}
+          onClick={() => selectCategory(value)}
+          aria-pressed={value === category}
+          className={value === category ? 'selected' : ''}
+        >
+          {value || 'Tất cả'}
+        </button>
+      ))}
+      {loading && <InlineSkeleton />}
+      {hasFilters && (
+        <button
+          className="clear-filters"
+          onClick={() =>
+            setParams({ category: '' }, { preventScrollReset: true })
+          }
+        >
+          <X size={14} aria-hidden="true" />
+          Xóa bộ lọc
+        </button>
+      )}
+    </div>
+  );
   return (
     <div
       className={`page${kind === 'events' || kind === 'information' ? ' content-feed-page' : ''}`}
@@ -84,6 +116,7 @@ export function ContentList({
           <input
             key={query}
             id="content-search"
+            type="search"
             name="q"
             defaultValue={query}
             placeholder={
@@ -97,57 +130,88 @@ export function ContentList({
           </button>
         </Form>
         <span className="result-count" aria-live="polite">
-          {meta.total} bài viết
+          <PublicContent
+            content={content}
+            cacheKey={cacheKey}
+            fallback={<InlineSkeleton />}
+            errorFallback={<span>Chưa tải được số bài</span>}
+          >
+            {(result) => `${result.meta.total} bài viết`}
+          </PublicContent>
         </span>
       </div>
-      <div
-        className="filter-tabs"
-        role="group"
-        aria-label={
-          kind === 'events' ? 'Lọc theo sự kiện' : 'Lọc theo chuyên mục'
-        }
-      >
-        {['', ...categories].map((value) => (
-          <button
-            key={value}
-            onClick={() => selectCategory(value)}
-            aria-pressed={value === category}
-            className={value === category ? 'selected' : ''}
-          >
-            {value || 'Tất cả'}
-          </button>
-        ))}
-        {hasFilters && (
-          <button
-            className="clear-filters"
-            onClick={() =>
-              setParams({ category: '' }, { preventScrollReset: true })
-            }
-          >
-            <X size={14} aria-hidden="true" />
-            Xóa bộ lọc
-          </button>
-        )}
-      </div>
+      {kind === 'events' ? (
+        <PublicContent
+          content={content}
+          cacheKey={cacheKey}
+          fallback={filters([], true)}
+          errorFallback={filters([])}
+        >
+          {(result) => filters(result.categories ?? [])}
+        </PublicContent>
+      ) : (
+        filters(page.categories)
+      )}
       <div className="listing-area">
-        {visible.length ? (
-          <div className="article-list">
-            {visible.map((item) => (
-              <ArticleCard key={item.id} item={item} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            headingAs="h2"
-            icon={page.icon}
-            title={query || category ? 'Không có nội dung phù hợp' : page.empty}
-          >
-            {query || category
-              ? 'Bạn có thể thử từ khóa khác hoặc xóa bộ lọc để xem toàn bộ nội dung.'
-              : page.detail}
-          </EmptyState>
-        )}
+        <PublicContent
+          content={content}
+          cacheKey={cacheKey}
+          fallback={<ContentSkeleton />}
+        >
+          {(result) => (
+            <ListingResults
+              kind={kind}
+              items={result.data}
+              meta={result.meta}
+            />
+          )}
+        </PublicContent>
       </div>
+      {kind !== 'events' && (
+        <aside className="information-note">
+          <span className="tiny-dot" />
+          <p>
+            Chỉ những thông tin đã được xác nhận mới được công bố. Website hiện
+            đang trong giai đoạn hoàn thiện nội dung.
+          </p>
+        </aside>
+      )}
+    </div>
+  );
+}
+function ListingResults({
+  kind,
+  items,
+  meta,
+}: {
+  kind: ContentKind;
+  items: ContentItem[];
+  meta: ListResponse<ContentItem>['meta'];
+}) {
+  const [params] = useSearchParams();
+  const page = copy[kind];
+  const query = params.get('q') ?? '';
+  const category =
+    params.get('category') ?? (kind === 'information' ? 'Thông báo' : '');
+  return (
+    <>
+      {items.length ? (
+        <div className="article-list">
+          {items.map((item) => (
+            <ArticleCard key={item.id} item={item} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          headingAs="h2"
+          icon={page.icon}
+          title={query || category ? 'Không có nội dung phù hợp' : page.empty}
+        >
+          {query || category
+            ? 'Bạn có thể thử từ khóa khác hoặc xóa bộ lọc để xem toàn bộ nội dung.'
+            : page.detail}
+        </EmptyState>
+      )}
       {meta.total > meta.limit && (
         <nav className="filter-tabs" aria-label="Phân trang">
           {meta.page > 1 && (
@@ -169,15 +233,6 @@ export function ContentList({
           )}
         </nav>
       )}
-      {kind !== 'events' && (
-        <aside className="information-note">
-          <span className="tiny-dot" />
-          <p>
-            Chỉ những thông tin đã được xác nhận mới được công bố. Website hiện
-            đang trong giai đoạn hoàn thiện nội dung.
-          </p>
-        </aside>
-      )}
-    </div>
+    </>
   );
 }

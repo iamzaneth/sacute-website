@@ -37,6 +37,12 @@ function Navigation({
           <NavLink
             key={item.path}
             to={item.path}
+            discover="render"
+            prefetch={
+              ['/contact', '/recruitment'].includes(item.path)
+                ? 'intent'
+                : 'none'
+            }
             end={item.path === '/'}
             onClick={onNavigate}
             aria-label={item.label}

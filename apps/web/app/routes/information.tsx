@@ -1,11 +1,11 @@
-import { ContentList } from '../features/content/content-list';
-import {
-  readContent,
-  listQuery,
-  contentHeaders,
-} from '../services/content-provider.server';
-export const headers = contentHeaders;
 import { pageMeta } from '../lib/seo';
+import { ContentList } from '../features/content/content-list';
+import { contentHeaders } from '../services/content-provider.server';
+import { streamPublicPage } from '../services/public-content.server';
+import { fetchPublicContent } from '../services/public-content-cache';
+import { publicResource } from '../features/content/public-data';
+import { useLocation } from 'react-router';
+export const headers = contentHeaders;
 import type { Route } from './+types/information';
 export const meta = () =>
   pageMeta(
@@ -14,17 +14,23 @@ export const meta = () =>
     '/information',
     true,
   );
-export async function loader({ request }: Route.LoaderArgs) {
-  return readContent((repository) =>
-    repository.list('information', listQuery(request, 'information')),
-  );
+export function loader({ request }: Route.LoaderArgs) {
+  return streamPublicPage('information', request);
+}
+export function clientLoader({ request }: Route.ClientLoaderArgs) {
+  return { content: fetchPublicContent('information', request.url) };
 }
 export default function Information({ loaderData }: Route.ComponentProps) {
+  const location = useLocation();
+  const cacheKey = publicResource(
+    'information',
+    location.pathname + location.search,
+  );
   return (
     <ContentList
       kind="information"
-      items={loaderData.data}
-      meta={loaderData.meta}
+      content={loaderData.content}
+      cacheKey={cacheKey}
     />
   );
 }

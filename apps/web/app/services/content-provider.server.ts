@@ -6,10 +6,12 @@ import {
 import { data } from 'react-router';
 import type { ContentKind, ListQuery } from '@sacute/shared';
 let repository: SupabaseContentRepository | undefined;
+let database: ReturnType<typeof createPublicSupabaseClient> | undefined;
+export function publicDatabase() {
+  return (database ??= createPublicSupabaseClient(process.env));
+}
 export function contentProvider() {
-  return (repository ??= new SupabaseContentRepository(
-    createPublicSupabaseClient(process.env),
-  ));
+  return (repository ??= new SupabaseContentRepository(publicDatabase()));
 }
 export async function readContent<T>(
   read: (repository: SupabaseContentRepository) => Promise<T>,

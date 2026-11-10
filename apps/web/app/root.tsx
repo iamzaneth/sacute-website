@@ -13,6 +13,10 @@ import {
 import { useState, type ReactNode } from 'react';
 import { Sidebar, InstitutionalHeader, Footer } from './components/layout';
 import { siteConfig } from './lib/site-config';
+import {
+  NavigationSkeleton,
+  usePublicFreshness,
+} from './features/content/navigation-feedback';
 import { centerProfile } from './components/brand';
 import './styles/app.css';
 import './styles/recruitment.css';
@@ -70,6 +74,7 @@ export function Layout({ children }: { children: ReactNode }) {
 export default function App() {
   const { pathname } = useLocation();
   const navigation = useNavigation();
+  usePublicFreshness();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   if (pathname === '/admin' || pathname.startsWith('/admin/'))
     return <Outlet />;
@@ -84,12 +89,19 @@ export default function App() {
       />
       <div className="site-body">
         <main id="main-content" tabIndex={-1}>
-          {navigation.state === 'loading' && (
-            <p role="status" className="page">
-              Đang tải nội dung…
-            </p>
+          {navigation.state === 'loading' &&
+          navigation.location &&
+          (/^\/(information|scholarships|events)(\?|$)/.test(
+            navigation.location.pathname,
+          ) ||
+            navigation.location.pathname === '/' ||
+            navigation.location.pathname.startsWith('/posts/')) ? (
+            <NavigationSkeleton
+              url={navigation.location.pathname + navigation.location.search}
+            />
+          ) : (
+            <Outlet />
           )}
-          <Outlet />
         </main>
         <Footer />
       </div>

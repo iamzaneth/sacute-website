@@ -8,7 +8,9 @@ import {
   Users,
 } from 'lucide-react';
 import { ActionLink, EmptyState, SectionHeading } from '../../components/ui';
-import type { ContentItem } from '@sacute/shared';
+import type { PublicPayloads, PublicData } from '../content/public-data';
+import { PublicContent } from '../content/public-content';
+import { ContentSkeleton } from '../content/content-skeleton';
 import { ArticleCard } from '../content/article-card';
 import { centerProfile } from '../../components/brand';
 
@@ -37,12 +39,10 @@ const destinations = [
 ];
 export function HomePage({
   content,
+  cacheKey,
 }: {
-  content: {
-    information: ContentItem[];
-    scholarships: ContentItem[];
-    events: ContentItem[];
-  };
+  content: PublicData<PublicPayloads['home']> | null;
+  cacheKey: string;
 }) {
   return (
     <div className="page home-page">
@@ -94,14 +94,25 @@ export function HomePage({
           to="/information"
         />
         <div className="latest-grid">
-          {content.information.length ? (
-            <ArticleCard item={content.information[0]} preview />
-          ) : (
-            <EmptyState icon={Bell} title="Thông tin mới đang được chuẩn bị">
-              Các thông báo sẽ xuất hiện tại đây sau khi nội dung chính thức
-              được xác nhận.
-            </EmptyState>
-          )}
+          <PublicContent
+            content={content}
+            cacheKey={cacheKey}
+            fallback={<ContentSkeleton count={1} compact />}
+          >
+            {(content) =>
+              content.information.length ? (
+                <ArticleCard item={content.information[0]} preview />
+              ) : (
+                <EmptyState
+                  icon={Bell}
+                  title="Thông tin mới đang được chuẩn bị"
+                >
+                  Các thông báo sẽ xuất hiện tại đây sau khi nội dung chính thức
+                  được xác nhận.
+                </EmptyState>
+              )
+            }
+          </PublicContent>
           <aside className="update-note">
             <span className="note-label">
               <Check size={14} aria-hidden="true" />
@@ -129,17 +140,25 @@ export function HomePage({
             to="/scholarships"
             linkLabel="Khám phá"
           />
-          {content.scholarships.length ? (
-            <ArticleCard item={content.scholarships[0]} preview />
-          ) : (
-            <EmptyState
-              compact
-              icon={GraduationCap}
-              title="Chưa có học bổng được công bố"
-            >
-              Thông tin học bổng đang chờ cập nhật chính thức.
-            </EmptyState>
-          )}
+          <PublicContent
+            content={content}
+            cacheKey={cacheKey}
+            fallback={<ContentSkeleton count={1} compact />}
+          >
+            {(content) =>
+              content.scholarships.length ? (
+                <ArticleCard item={content.scholarships[0]} preview />
+              ) : (
+                <EmptyState
+                  compact
+                  icon={GraduationCap}
+                  title="Chưa có học bổng được công bố"
+                >
+                  Thông tin học bổng đang chờ cập nhật chính thức.
+                </EmptyState>
+              )
+            }
+          </PublicContent>
         </section>
         <section>
           <SectionHeading
@@ -148,42 +167,50 @@ export function HomePage({
             to="/events"
             linkLabel="Khám phá"
           />
-          {content.events.length ? (
-            <div className="home-events">
-              {content.events.slice(0, 2).map((item) => {
-                const image = item.coverImage ?? item.images?.[0];
-                return (
-                  <Link
-                    key={item.id}
-                    className="home-event"
-                    to={`/posts/${item.slug}`}
-                  >
-                    {image && (
-                      <img
-                        src={image.url}
-                        alt=""
-                        width={112}
-                        height={90}
-                        loading="lazy"
-                      />
-                    )}
-                    <div>
-                      <p className="eyebrow">{item.eventName}</p>
-                      <h3>{item.title}</h3>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <EmptyState
-              compact
-              icon={CalendarDays}
-              title="Chờ những hoạt động sắp tới"
-            >
-              Lịch hoạt động sẽ được cập nhật sau khi xác nhận.
-            </EmptyState>
-          )}
+          <PublicContent
+            content={content}
+            cacheKey={cacheKey}
+            fallback={<ContentSkeleton count={2} rows />}
+          >
+            {(content) =>
+              content.events.length ? (
+                <div className="home-events">
+                  {content.events.slice(0, 2).map((item) => {
+                    const image = item.coverImage ?? item.images?.[0];
+                    return (
+                      <Link
+                        key={item.id}
+                        className="home-event"
+                        to={`/posts/${item.slug}`}
+                      >
+                        {image && (
+                          <img
+                            src={image.url}
+                            alt=""
+                            width={112}
+                            height={90}
+                            loading="lazy"
+                          />
+                        )}
+                        <div>
+                          <p className="eyebrow">{item.eventName}</p>
+                          <h3>{item.title}</h3>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyState
+                  compact
+                  icon={CalendarDays}
+                  title="Chờ những hoạt động sắp tới"
+                >
+                  Lịch hoạt động sẽ được cập nhật sau khi xác nhận.
+                </EmptyState>
+              )
+            }
+          </PublicContent>
         </section>
       </div>
       <section className="recruitment-banner">

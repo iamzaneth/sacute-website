@@ -11,6 +11,7 @@ export default [
     route('media/file', 'routes/admin-media-file.ts'),
   ]),
   route('media/posts/:id/:mediaId', 'routes/public-media.ts'),
+  route('resources/content', 'routes/public-content.ts'),
   index('routes/home.tsx'),
   route('information', 'routes/information.tsx'),
   route('scholarships', 'routes/scholarships.tsx'),

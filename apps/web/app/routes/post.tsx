@@ -5,6 +5,7 @@ import {
   contentHeaders,
 } from '../services/content-provider.server';
 export const headers = contentHeaders;
+import { fetchPublicContent } from '../services/public-content-cache';
 import { ArticleCard } from '../features/content/article-card';
 import { pageMeta } from '../lib/seo';
 import type { Route } from './+types/post';
@@ -19,6 +20,12 @@ export async function loader({ params }: Route.LoaderArgs) {
       });
     return { item };
   });
+}
+
+export async function clientLoader({ request }: Route.ClientLoaderArgs) {
+  const result = await fetchPublicContent('post', request.url);
+  if (!result.ok) throw new Response(result.message, { status: result.status });
+  return result.value;
 }
 
 export const meta: Route.MetaFunction = ({ data, error }) =>

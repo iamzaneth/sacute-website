@@ -7,26 +7,21 @@ export const meta = () =>
     '/',
     true,
   );
-import {
-  readContent,
-  contentHeaders,
-} from '../services/content-provider.server';
-import type { Route } from './+types/home';
+import { contentHeaders } from '../services/content-provider.server';
+import { streamPublicPage } from '../services/public-content.server';
+import { fetchPublicContent } from '../services/public-content-cache';
+import { publicResource } from '../features/content/public-data';
+import { useLocation } from 'react-router';
 export const headers = contentHeaders;
-export async function loader() {
-  return readContent(async (repository) => {
-    const [information, scholarships, events] = await Promise.all([
-      repository.list('information', { category: 'Thông báo', limit: 1 }),
-      repository.list('scholarships', { limit: 1 }),
-      repository.list('events', { limit: 2 }),
-    ]);
-    return {
-      information: information.data,
-      scholarships: scholarships.data,
-      events: events.data,
-    };
-  });
+import type { Route } from './+types/home';
+export function loader({ request }: Route.LoaderArgs) {
+  return streamPublicPage('home', request);
+}
+export function clientLoader({ request }: Route.ClientLoaderArgs) {
+  return { content: fetchPublicContent('home', request.url) };
 }
 export default function Home({ loaderData }: Route.ComponentProps) {
-  return <HomePage content={loaderData} />;
+  const location = useLocation();
+  const cacheKey = publicResource('home', location.pathname + location.search);
+  return <HomePage content={loaderData.content} cacheKey={cacheKey} />;
 }

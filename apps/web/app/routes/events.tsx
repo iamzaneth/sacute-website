@@ -1,11 +1,11 @@
-import { ContentList } from '../features/content/content-list';
-import {
-  readContent,
-  listQuery,
-  contentHeaders,
-} from '../services/content-provider.server';
-export const headers = contentHeaders;
 import { pageMeta } from '../lib/seo';
+import { ContentList } from '../features/content/content-list';
+import { contentHeaders } from '../services/content-provider.server';
+import { streamPublicPage } from '../services/public-content.server';
+import { fetchPublicContent } from '../services/public-content-cache';
+import { publicResource } from '../features/content/public-data';
+import { useLocation } from 'react-router';
+export const headers = contentHeaders;
 import type { Route } from './+types/events';
 export const meta = () =>
   pageMeta(
@@ -14,23 +14,23 @@ export const meta = () =>
     '/events',
     true,
   );
-export async function loader({ request }: Route.LoaderArgs) {
-  return readContent(async (repository) => {
-    const [result, categories] = await Promise.all([
-      repository.list('events', listQuery(request, 'events')),
-      repository.getEventCategories(),
-    ]);
-    return { ...result, categories };
-  });
+export function loader({ request }: Route.LoaderArgs) {
+  return streamPublicPage('events', request);
 }
-
+export function clientLoader({ request }: Route.ClientLoaderArgs) {
+  return { content: fetchPublicContent('events', request.url) };
+}
 export default function Events({ loaderData }: Route.ComponentProps) {
+  const location = useLocation();
+  const cacheKey = publicResource(
+    'events',
+    location.pathname + location.search,
+  );
   return (
     <ContentList
       kind="events"
-      items={loaderData.data}
-      meta={loaderData.meta}
-      categoryOptions={loaderData.categories}
+      content={loaderData.content}
+      cacheKey={cacheKey}
     />
   );
 }
