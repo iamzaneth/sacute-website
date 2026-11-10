@@ -128,69 +128,48 @@ test('mobile drawer traps focus, closes with Escape, restores focus and navigate
   await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
 });
 
-for (const width of [1024, 1366, 1920]) {
-  test(`desktop sidebar collapses, navigates and expands at ${width}px`, async ({
-    page,
-  }) => {
+for (const width of [951, 1024, 1366, 1920]) {
+  test(`desktop sidebar stays expanded at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
     const sidebar = page.getByRole('complementary', {
       name: 'Thanh điều hướng',
     });
-    await sidebar
-      .getByRole('button', { name: 'Mở rộng thanh điều hướng' })
-      .click();
-    await expect
-      .poll(async () => (await sidebar.boundingBox())!.width)
-      .toBe(width >= 1700 ? 260 : 244);
-    const initialWidth = (await sidebar.boundingBox())!.width;
-    const sidebarAvatar = sidebar.locator('.brand-logo');
-    await expect(sidebarAvatar).toHaveAttribute(
+    const expectedWidth = width >= 1700 ? 260 : 244;
+    async function expectExpandedLayout() {
+      await expect(sidebar).toBeVisible();
+      expect((await sidebar.boundingBox())!.width).toBe(expectedWidth);
+      await expect(sidebar.getByRole('button')).toHaveCount(0);
+      await expect(sidebar.locator('.nav-item > span').first()).toBeVisible();
+      for (const selector of ['.institution-header', '.site-body']) {
+        const bounds = (await page.locator(selector).boundingBox())!;
+        expect(bounds.x).toBe(expectedWidth);
+        expect(bounds.width + bounds.x).toBeCloseTo(width, 0);
+      }
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+    }
+    await expectExpandedLayout();
+    await expect(sidebar.locator('.brand-logo')).toHaveAttribute(
       'src',
       '/branding/profile/avatar.jpg',
     );
     await expect(page.locator('.institution-header .header-logo')).toBeHidden();
-    async function expectIndependentColumns() {
-      const avatar = (await sidebarAvatar.boundingBox())!;
-      const header = (await page.locator('.institution-header').boundingBox())!;
-      const navigation = (await sidebar.boundingBox())!;
-      expect(navigation.y).toBe(0);
-      expect(avatar.x).toBeGreaterThanOrEqual(navigation.x);
-      expect(avatar.x + avatar.width).toBeLessThanOrEqual(
-        navigation.x + navigation.width,
-      );
-      expect(header.x).toBeCloseTo(104, 0);
-      expect(header.width + 104).toBeCloseTo(width, 0);
-    }
-    await expectIndependentColumns();
-    expect((await sidebarAvatar.boundingBox())!.width).toBeGreaterThanOrEqual(
-      56,
-    );
-    await sidebar
-      .getByRole('button', { name: 'Thu gọn thanh điều hướng' })
-      .click();
-    const expand = sidebar.getByRole('button', {
-      name: 'Mở rộng thanh điều hướng',
+    const scholarshipLink = sidebar.getByRole('link', {
+      name: 'Học bổng',
+      exact: true,
     });
-    await expect(expand).toHaveAttribute('aria-expanded', 'false');
-    await expect
-      .poll(async () => (await sidebar.boundingBox())!.width)
-      .toBe(104);
-    await expectIndependentColumns();
-    await expect
-      .poll(async () => (await page.locator('.site-body').boundingBox())!.x)
-      .toBe(104);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-    ).toBe(true);
-    await sidebar.getByRole('link', { name: 'Học bổng', exact: true }).click();
+    await scholarshipLink.focus();
+    await page.keyboard.press('Escape');
+    await expectExpandedLayout();
+    await scholarshipLink.click();
     await expect(page).toHaveURL('/scholarships');
-    await expect(
-      sidebar.getByRole('link', { name: 'Học bổng', exact: true }),
-    ).toHaveAttribute('aria-current', 'page');
-    await expect(expand).toBeVisible();
+    await expect(scholarshipLink).toHaveAttribute('aria-current', 'page');
+    await page.locator('main h1').click();
+    await expectExpandedLayout();
     const accessibility = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
       .analyze();
@@ -200,30 +179,8 @@ for (const width of [1024, 1366, 1920]) {
     await expect(
       page.getByRole('button', { name: 'Mở menu điều hướng' }),
     ).toBeVisible();
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-    ).toBe(true);
     await page.setViewportSize({ width, height: 900 });
-    await expand.focus();
-    await page.keyboard.press('Enter');
-    await expect
-      .poll(async () => (await sidebar.boundingBox())!.width)
-      .toBe(initialWidth);
-    await expect(
-      sidebar.getByRole('button', { name: 'Thu gọn thanh điều hướng' }),
-    ).toHaveAttribute('aria-expanded', 'true');
-    const fixedWidth = (await page.locator('.site-body').boundingBox())!.width;
-    await page.keyboard.press('Escape');
-    await expect(expand).toHaveAttribute('aria-expanded', 'false');
-    await expand.click();
-    await page.locator('main h1').click();
-    await expect(expand).toHaveAttribute('aria-expanded', 'false');
-    expect((await page.locator('.site-body').boundingBox())!.width).toBeCloseTo(
-      fixedWidth,
-      0,
-    );
+    await expectExpandedLayout();
   });
 }
 
@@ -535,95 +492,3 @@ test('explicit all categories survives search, reload, and browser history', asy
     page.getByRole('heading', { name: testContent.scholarships[0].title }),
   ).toBeVisible();
 });
-
-for (const width of [1024, 1366, 1920]) {
-  test(`sidebar overlay keeps content geometry fixed at ${width}px`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto('/');
-    await page.locator('.sidebar-toggle').waitFor();
-    await page.locator('.sidebar-toggle').click();
-    await expect
-      .poll(async () => (await page.locator('.sidebar').boundingBox())!.width)
-      .toBe(width >= 1700 ? 260 : 244);
-    for (const opening of [false, true]) {
-      const frames = await page.evaluate(async () => {
-        const sidebar = document.querySelector('.sidebar')!;
-        const toggle =
-          document.querySelector<HTMLButtonElement>('.sidebar-toggle')!;
-        const icon = sidebar.querySelector('.nav-item > svg')!;
-        const supportIcon = sidebar.querySelector('.sidebar-bottom a > svg')!;
-        const snapshot = () => ({
-          width: sidebar.getBoundingClientRect().width,
-          iconX: icon.getBoundingClientRect().x,
-          iconY: icon.getBoundingClientRect().y,
-          toggleY: toggle.getBoundingClientRect().y,
-          supportX: supportIcon.getBoundingClientRect().x,
-          supportY: supportIcon.getBoundingClientRect().y,
-          headerX: document
-            .querySelector('.institution-header')!
-            .getBoundingClientRect().x,
-          contentX: document
-            .querySelector('.site-body')!
-            .getBoundingClientRect().x,
-          contentWidth: document
-            .querySelector('.site-body')!
-            .getBoundingClientRect().width,
-          bannerWidth: document
-            .querySelector('.center-profile-cover')!
-            .getBoundingClientRect().width,
-          bannerHeight: document
-            .querySelector('.center-profile-cover')!
-            .getBoundingClientRect().height,
-          overflow: document.documentElement.scrollWidth > innerWidth,
-        });
-        const samples = [snapshot()];
-        toggle.click();
-        const started = performance.now();
-        await new Promise<void>((resolve) => {
-          const sample = () => {
-            samples.push(snapshot());
-            if (performance.now() - started < 350)
-              requestAnimationFrame(sample);
-            else resolve();
-          };
-          requestAnimationFrame(sample);
-        });
-        return samples;
-      });
-      expect(
-        frames.some(
-          (frame) =>
-            frame.width > 105 &&
-            frame.width < frames[opening ? frames.length - 1 : 0].width - 1,
-        ),
-      ).toBe(true);
-      for (const frame of frames) {
-        expect(frame.iconX).toBeCloseTo(frames[0].iconX, 0);
-        expect(frame.iconY).toBeCloseTo(frames[0].iconY, 0);
-        expect(frame.toggleY).toBeCloseTo(frames[0].toggleY, 0);
-        expect(frame.supportX).toBeCloseTo(frames[0].supportX, 0);
-        expect(frame.supportY).toBeCloseTo(frames[0].supportY, 0);
-        expect(frame.headerX).toBeCloseTo(104, 0);
-        expect(frame.contentX).toBeCloseTo(104, 0);
-        expect(frame.contentWidth).toBeCloseTo(frames[0].contentWidth, 0);
-        expect(frame.bannerWidth).toBeCloseTo(frames[0].bannerWidth, 0);
-        expect(frame.bannerHeight).toBeCloseTo(frames[0].bannerHeight, 0);
-        expect(frame.overflow).toBe(false);
-      }
-      if (!opening) {
-        const support = page.locator('.sidebar-bottom a');
-        await support.hover();
-        const bounds = (await support.boundingBox())!;
-        const rail = (await page.locator('.sidebar').boundingBox())!;
-        const icon = (await support.locator('svg').first().boundingBox())!;
-        expect(bounds.width).toBe(80);
-        expect(bounds.x - rail.x).toBeCloseTo(12, 0);
-        expect(
-          Math.abs(bounds.x + bounds.width / 2 - (icon.x + icon.width / 2)),
-        ).toBeLessThan(1);
-      }
-    }
-  });
-}

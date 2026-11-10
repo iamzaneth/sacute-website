@@ -12,8 +12,6 @@ import {
   Menu,
   MapPin,
   MessageCircle,
-  PanelLeftClose,
-  PanelLeftOpen,
   Users,
   X,
 } from 'lucide-react';
@@ -22,13 +20,7 @@ import { Brand, BrandLogo } from './brand';
 
 const icons = [Home, BookOpen, GraduationCap, CalendarDays, Mail, Users];
 
-function Navigation({
-  onNavigate,
-  collapsed = false,
-}: {
-  onNavigate?: () => void;
-  collapsed?: boolean;
-}) {
+function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav aria-label="Điều hướng chính" className="nav-items">
       {navigation.map((item, index) => {
@@ -46,7 +38,6 @@ function Navigation({
             end={item.path === '/'}
             onClick={onNavigate}
             aria-label={item.label}
-            title={collapsed ? item.label : undefined}
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <Icon size={19} strokeWidth={1.7} aria-hidden="true" />
@@ -62,58 +53,17 @@ function Navigation({
     </nav>
   );
 }
-export function Sidebar({
-  collapsed,
-  onToggle,
-}: {
-  collapsed: boolean;
-  onToggle: () => void;
-}) {
+export function Sidebar() {
   return (
-    <aside
-      className="sidebar"
-      aria-label="Thanh điều hướng"
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' && !collapsed) {
-          event.preventDefault();
-          onToggle();
-          event.currentTarget
-            .querySelector<HTMLButtonElement>('.sidebar-toggle')
-            ?.focus();
-        }
-      }}
-    >
-      <button
-        type="button"
-        className="sidebar-toggle icon-button"
-        onClick={onToggle}
-        aria-label={
-          collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'
-        }
-        aria-expanded={!collapsed}
-        aria-controls="desktop-navigation"
-        title={
-          collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'
-        }
-      >
-        {collapsed ? (
-          <PanelLeftOpen size={21} aria-hidden="true" />
-        ) : (
-          <PanelLeftClose size={21} aria-hidden="true" />
-        )}
-      </button>
+    <aside className="sidebar" aria-label="Thanh điều hướng">
       <Brand />
       <div className="nav-caption">KHÁM PHÁ SACUTE</div>
       <div id="desktop-navigation">
-        <Navigation collapsed={collapsed} />
+        <Navigation />
       </div>
       <div className="sidebar-bottom">
         <p>Bạn cần được hỗ trợ?</p>
-        <Link
-          to="/contact"
-          aria-label="Liên hệ SACUTE"
-          title={collapsed ? 'Liên hệ SACUTE' : undefined}
-        >
+        <Link to="/contact" aria-label="Liên hệ SACUTE">
           <HeartHandshake size={23} strokeWidth={1.4} aria-hidden="true" />
           <span>Kết nối với SACUTE</span>
           <ArrowUpRight size={15} aria-hidden="true" />

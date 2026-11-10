@@ -10,7 +10,7 @@ import {
   Link,
   useLocation,
 } from 'react-router';
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Sidebar, InstitutionalHeader, Footer } from './components/layout';
 import { siteConfig } from './lib/site-config';
 import {
@@ -75,24 +75,13 @@ export default function App() {
   const { pathname } = useLocation();
   const navigation = useNavigation();
   usePublicFreshness();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   if (pathname === '/admin' || pathname.startsWith('/admin/'))
     return <Outlet />;
   return (
-    <div
-      className={`site-shell${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}
-    >
+    <div className="site-shell">
       <InstitutionalHeader />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((value) => !value)}
-      />
-      <div
-        className="site-body"
-        onPointerDownCapture={() => {
-          if (!sidebarCollapsed) setSidebarCollapsed(true);
-        }}
-      >
+      <Sidebar />
+      <div className="site-body">
         <main id="main-content" tabIndex={-1}>
           {navigation.state === 'loading' &&
           navigation.location &&
