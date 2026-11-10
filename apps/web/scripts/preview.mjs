@@ -17,7 +17,10 @@ app.use(
   express.static(resolve('build/client'), { index: false, redirect: false }),
 );
 app.use((request, response, next) => {
-  if (/^\/(assets|branding|media)\//.test(request.path)) {
+  if (
+    /^\/(assets|branding|media)\//.test(request.path) &&
+    !/^\/media\/posts\//.test(request.path)
+  ) {
     response.status(404).end();
     return;
   }

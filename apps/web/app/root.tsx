@@ -8,6 +8,7 @@ import {
   useRouteError,
   useNavigation,
   Link,
+  useLocation,
 } from 'react-router';
 import { useState, type ReactNode } from 'react';
 import { Sidebar, InstitutionalHeader, Footer } from './components/layout';
@@ -67,8 +68,11 @@ export function Layout({ children }: { children: ReactNode }) {
   );
 }
 export default function App() {
+  const { pathname } = useLocation();
   const navigation = useNavigation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  if (pathname === '/admin' || pathname.startsWith('/admin/'))
+    return <Outlet />;
   return (
     <div
       className={`site-shell${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}

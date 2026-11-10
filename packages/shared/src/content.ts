@@ -1,5 +1,6 @@
 // Server data access entry point. Do not import this module from React components.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { deriveLifecycle } from './lifecycle';
 import type {
   ContentItem,
   ContentKind,
@@ -130,6 +131,7 @@ export interface PostRow {
   source_url: string | null;
   status: string;
   visible_from: string | null;
+  deleted_at: string | null;
   published_on: string | null;
   published_at: string | null;
   published_at_precision: 'date' | 'datetime' | null;
@@ -149,15 +151,25 @@ const safeUrl = (value: string | null) => {
     return undefined;
   }
 };
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const safeMediaPath = (path: string) =>
+  path.length > 0 &&
+  path.length <= 512 &&
+  ![...path].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127) &&
+  !/(^\/|\/\/|\/$|(^|\/)\.\.?($|\/)|[\\?#%])/.test(path);
+export const publicMediaHeaders = {
+  'Cache-Control': 'no-store',
+  'Content-Disposition': 'inline',
+  'X-Content-Type-Options': 'nosniff',
+  'Content-Security-Policy': "default-src 'none'; sandbox",
+};
 export function mapPost(
   row: PostRow,
   db: SupabaseClient,
   now = new Date(),
+  mediaPrefix = '/media/posts',
 ): PublicPost {
-  if (
-    row.status !== 'published' ||
-    (row.visible_from && Date.parse(row.visible_from) > now.getTime())
-  )
+  if (row.deleted_at != null || deriveLifecycle(row, now) !== 'published')
     throw new ContentError('invalid-data');
   if (
     !row.id ||
@@ -171,9 +183,9 @@ export function mapPost(
   );
   const mapped = media.flatMap((m) => {
     if (
-      m.bucket !== 'post-media' ||
-      !m.storage_path ||
-      m.storage_path.split('/').some((p) => p === '..' || p === '.')
+      !['post-media', 'draft-media'].includes(m.bucket) ||
+      !safeMediaPath(m.storage_path) ||
+      (m.bucket === 'draft-media' && (!uuid.test(row.id) || !uuid.test(m.id)))
     ) {
       console.warn(
         JSON.stringify({
@@ -184,8 +196,11 @@ export function mapPost(
       return [];
     }
     const image: PostImage = {
-      url: db.storage.from('post-media').getPublicUrl(m.storage_path).data
-        .publicUrl,
+      url:
+        m.bucket === 'draft-media'
+          ? `${mediaPrefix}/${row.id}/${m.id}`
+          : db.storage.from('post-media').getPublicUrl(m.storage_path).data
+              .publicUrl,
       alt: m.alt_text ?? '',
       width: m.width && m.width > 0 ? m.width : undefined,
       height: m.height && m.height > 0 ? m.height : undefined,
@@ -249,8 +264,8 @@ export function mapPost(
   }
   return { ...base, kind: 'information' };
 }
-const selection =
-  'id,slug,kind,category,title,original_title,event_name,summary,content,content_format,tags,author_name,author_url,source_url,status,visible_from,published_on,published_at,published_at_precision,post_media(id,bucket,storage_path,alt_text,width,height,sort_order,is_cover),scholarship_details(provider,eligibility,opens_at,closes_at,application_url,lifecycle_status),event_details(starts_at,ends_at,starts_on,ends_on,location,registration_url,lifecycle_status)';
+export const postSelection =
+  'id,slug,kind,category,title,original_title,event_name,summary,content,content_format,tags,author_name,author_url,source_url,status,visible_from,deleted_at,published_on,published_at,published_at_precision,post_media(id,bucket,storage_path,alt_text,width,height,sort_order,is_cover),scholarship_details(provider,eligibility,opens_at,closes_at,application_url,lifecycle_status),event_details(starts_at,ends_at,starts_on,ends_on,location,registration_url,lifecycle_status)';
 // JSON quoting protects PostgREST filter grammar; wildcard characters are literal.
 const literal = (value: string) => JSON.stringify(value);
 const pattern = (value: string) =>
@@ -258,17 +273,28 @@ const pattern = (value: string) =>
 export class SupabaseContentRepository {
   constructor(
     private readonly db: SupabaseClient,
-    private readonly clock = () => new Date(),
+    private readonly clock?: () => Date | Promise<Date>,
+    private readonly mediaPrefix = '/media/posts',
   ) {}
-  private query(columns = selection) {
+  async databaseTime() {
+    if (this.clock) return this.clock();
+    const result = await this.db.rpc('sacute_content_time');
+    if (result.error) this.fail(result.error);
+    if (
+      typeof result.data !== 'string' ||
+      !Number.isFinite(Date.parse(result.data))
+    )
+      throw new ContentError('invalid-data');
+    return new Date(result.data);
+  }
+  private query(now: Date, columns = postSelection) {
     return this.db
       .from('posts')
       .select(columns, { count: 'exact' })
       .retry(false)
       .eq('status', 'published')
-      .or(
-        `visible_from.is.null,visible_from.lte.${this.clock().toISOString()}`,
-      );
+      .is('deleted_at', null)
+      .or(`visible_from.is.null,visible_from.lte.${now.toISOString()}`);
   }
   async list<K extends ContentKind>(
     kind: K,
@@ -286,7 +312,8 @@ export class SupabaseContentRepository {
       (category?.length ?? 0) > 100
     )
       throw new ContentError('invalid-data', 400);
-    let query = this.query();
+    const now = await this.databaseTime();
+    let query = this.query(now);
     if (kind === 'information') {
       query = query.in(
         'kind',
@@ -321,7 +348,7 @@ export class SupabaseContentRepository {
     if (!Array.isArray(result.data) || result.count === null)
       throw new ContentError('invalid-data');
     const data = (result.data as unknown as PostRow[]).map((row) => {
-      const post = mapPost(row, this.db, this.clock());
+      const post = mapPost(row, this.db, now, this.mediaPrefix);
       return {
         ...post,
         category:
@@ -340,10 +367,11 @@ export class SupabaseContentRepository {
   async getEventCategories(): Promise<string[]> {
     // Facets read only two small metadata fields, never article bodies/media.
     // Range each request to avoid silently truncating at the PostgREST row cap.
+    const now = await this.databaseTime();
     const categories = new Set<string>();
     const batchSize = 500;
     for (let offset = 0; ;) {
-      const result = await this.query('event_name,category')
+      const result = await this.query(now, 'event_name,category')
         .eq('kind', 'event')
         .order('id', { ascending: true })
         .range(offset, offset + batchSize - 1);
@@ -364,11 +392,50 @@ export class SupabaseContentRepository {
     return [...categories].sort((a, b) => a.localeCompare(b, 'vi'));
   }
   async getPostBySlug(slug: string): Promise<PublicPost | null> {
-    const result = await this.query().eq('slug', slug).maybeSingle();
+    const now = await this.databaseTime();
+    const result = await this.query(now).eq('slug', slug).maybeSingle();
     if (result.error) this.fail(result.error);
     return result.data
-      ? mapPost(result.data as unknown as PostRow, this.db, this.clock())
+      ? mapPost(
+          result.data as unknown as PostRow,
+          this.db,
+          now,
+          this.mediaPrefix,
+        )
       : null;
+  }
+  // Anonymous client only. Recheck visibility before every byte response; never
+  // issue signed URLs, expose private object paths or inherit upstream caching.
+  async readPublicMedia(postId: string, mediaId: string): Promise<Blob | null> {
+    if (!uuid.test(postId) || !uuid.test(mediaId)) return null;
+    const now = await this.databaseTime();
+    const result = await this.query(now).eq('id', postId).maybeSingle();
+    if (result.error) this.fail(result.error);
+    const row = result.data as unknown as PostRow | null;
+    if (!row || deriveLifecycle(row, now) !== 'published') return null;
+    const media = row.post_media.find((m) => m.id === mediaId);
+    if (
+      !media ||
+      media.bucket !== 'draft-media' ||
+      !safeMediaPath(media.storage_path)
+    )
+      return null;
+    const download = await this.db.storage
+      .from('draft-media')
+      .download(
+        media.storage_path,
+        { cacheNonce: crypto.randomUUID() },
+        { cache: 'no-store' },
+      );
+    if (download.error || !download.data) return null;
+    if (
+      !['image/png', 'image/jpeg', 'image/webp', 'image/avif'].includes(
+        download.data.type.split(';')[0],
+      ) ||
+      download.data.size > 3 * 1024 * 1024
+    )
+      return null;
+    return download.data;
   }
   async getLatestPosts(limit = 3, kind: ContentKind = 'information') {
     return (await this.list(kind, { limit })).data;

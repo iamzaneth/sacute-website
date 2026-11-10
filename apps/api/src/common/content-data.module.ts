@@ -4,9 +4,10 @@ import {
   CloudContentRepository,
 } from './content.repository';
 import { PostsController } from './posts.controller';
+import { MediaController } from './media.controller';
 @Module({
   providers: [{ provide: ContentRepository, useClass: CloudContentRepository }],
-  controllers: [PostsController],
+  controllers: [PostsController, MediaController],
   exports: [ContentRepository],
 })
 export class ContentDataModule {}

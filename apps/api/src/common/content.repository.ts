@@ -17,6 +17,10 @@ export abstract class ContentRepository {
     query: ListQuery,
   ): Promise<ListResponse<ContentMap[K]>>;
   abstract getPostBySlug(slug: string): Promise<PublicPost | null>;
+  abstract readPublicMedia(
+    postId: string,
+    mediaId: string,
+  ): Promise<Blob | null>;
 }
 @Injectable()
 export class CloudContentRepository extends ContentRepository {
@@ -28,6 +32,8 @@ export class CloudContentRepository extends ContentRepository {
         SUPABASE_URL: config.get('SUPABASE_URL'),
         SUPABASE_PUBLISHABLE_KEY: config.get('SUPABASE_PUBLISHABLE_KEY'),
       }),
+      undefined,
+      '/api/v1/media/posts',
     );
   }
   list<K extends ContentKind>(kind: K, query: ListQuery) {
@@ -35,5 +41,8 @@ export class CloudContentRepository extends ContentRepository {
   }
   getPostBySlug(slug: string) {
     return this.store.getPostBySlug(slug);
+  }
+  readPublicMedia(postId: string, mediaId: string) {
+    return this.store.readPublicMedia(postId, mediaId);
   }
 }

@@ -129,3 +129,50 @@ test('configuration validates origins, ports and public Supabase credentials', (
     }),
   );
 });
+test('API clock, Trash and conditional private-media delivery share public visibility', async () => {
+  const id = '00000000-0000-4000-8000-000000000071';
+  const mediaId = '00000000-0000-4000-8000-000000000072';
+  const row = {
+    ...structuredClone(fixture.state.rows[0]),
+    id,
+    slug: 'api-scheduled-private',
+    visible_from: '2030-11-15T00:00:00Z',
+    post_media: [
+      {
+        id: mediaId,
+        bucket: 'draft-media',
+        storage_path: 'admin/fixture/private.png',
+        sort_order: 0,
+        is_cover: true,
+        alt_text: 'Private',
+        width: 2,
+        height: 2,
+      },
+    ],
+  };
+  fixture.state.rows.push(row);
+  fixture.state.now = '2030-11-14T23:59:59Z';
+  const path = `media/posts/${id}/${mediaId}`;
+  try {
+    assert.equal((await get('posts/' + row.slug)).status, 404);
+    assert.equal((await get(path)).status, 404);
+    fixture.state.now = row.visible_from;
+    const detail = await (await get('posts/' + row.slug)).json();
+    assert.equal(detail.data.images[0].url, '/api/v1/' + path);
+    const image = await get(path);
+    assert.equal(image.status, 200);
+    assert.equal(image.headers.get('cache-control'), 'no-store');
+    assert.equal(image.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(image.headers.get('content-type'), 'image/png');
+    assert.ok((await image.arrayBuffer()).byteLength);
+    row.deleted_at = row.visible_from;
+    assert.equal((await get('posts/' + row.slug)).status, 404);
+    assert.equal((await get(path)).status, 404);
+    const list = await (await get('information?q=Thông')).json();
+    assert.ok(!list.data.some((p) => p.id === id));
+    assert.equal((await get(`media/posts/invalid/${mediaId}`)).status, 404);
+  } finally {
+    delete fixture.state.now;
+    fixture.state.rows.splice(fixture.state.rows.indexOf(row), 1);
+  }
+});

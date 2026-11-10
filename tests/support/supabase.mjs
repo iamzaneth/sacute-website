@@ -2,7 +2,7 @@
 import { createServer } from 'node:http';
 export const testKey = 'sb_publishable_synthetic_test';
 export const imageBytes = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAFElEQVQImWP4X87wv5wBhP+XMwAALPIF2fa82QwAAAAASUVORK5CYII=',
   'base64',
 );
 const media = (i) => ({
@@ -37,6 +37,11 @@ const post = (id, kind, title, overrides = {}) => ({
   source_url: null,
   status: 'published',
   visible_from: null,
+  deleted_at: null,
+  deleted_by: null,
+  updated_at: null,
+  lifecycle_revision: crypto.randomUUID(),
+  publication_recorded: null,
   published_on: '2026-01-03',
   published_at: '2026-01-03T01:30:00Z',
   published_at_precision: 'datetime',
@@ -144,8 +149,19 @@ function matches(row, condition) {
   const [, column, operator, raw] =
     condition.match(/^([\w_]+)\.([\w]+)\.(.*)$/) ?? [];
   const value = raw?.startsWith('"') ? JSON.parse(raw) : raw;
+  if (operator === 'not') return !matches(row, `${column}.${value}`);
+  if (operator === 'gt')
+    return (
+      row[column] !== null &&
+      (column === 'visible_from'
+        ? Date.parse(row[column]) > Date.parse(value)
+        : row[column] > value)
+    );
   if (operator === 'is') return row[column] === null;
-  if (operator === 'lte') return row[column] <= value;
+  if (operator === 'lte')
+    return column === 'visible_from'
+      ? Date.parse(row[column]) <= Date.parse(value)
+      : row[column] <= value;
   if (operator === 'eq') return row[column] === value;
   if (operator === 'in') return split(value.slice(1, -1)).includes(row[column]);
   if (operator === 'ilike') {
@@ -159,17 +175,24 @@ function matches(row, condition) {
   }
   throw new Error(`Unsupported fixture operator ${operator}`);
 }
-export async function startFixtureDatabase(port = 0) {
+export async function startFixtureDatabase(port = 0, handler) {
   const state = { rows: structuredClone(rows), fail: false, requests: [] };
-  const server = createServer((req, res) => {
+  const server = createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     const url = new URL(req.url, 'http://fixture.test');
+    if (url.pathname === '/rest/v1/rpc/sacute_content_time') {
+      state.clockRequests = (state.clockRequests ?? 0) + 1;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(state.now ?? new Date().toISOString()));
+      return;
+    }
+    if (handler && (await handler(req, res, url, state))) return;
     if (url.pathname.startsWith('/storage/')) {
       res.writeHead(200, { 'Content-Type': 'image/png' });
       res.end(imageBytes);
       return;
     }
-    if (req.method !== 'GET') {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405).end();
       return;
     }
