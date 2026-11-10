@@ -97,6 +97,18 @@ Chỉ đặt `VITE_ALLOW_INDEXING=true` chưa đủ để đưa trang chưa duy�
 Với Vercel: Root Directory `apps/web`, bật nguồn ngoài root, Node.js 24.x,
 Install Command `pnpm install --frozen-lockfile`, Build Command `pnpm run build`,
 Output Directory `build/client`. Build frontend tự chuẩn bị shared package.
+Cấu hình build/output được lưu trong `apps/web/vercel.json` để dùng cùng lệnh
+với bản production local. Khi redeploy, chọn commit mới nhất của `main` và tắt
+`Use existing Build Cache` nếu bản đang phục vụ vẫn chứa CSS cũ. Kiểm tra bản
+deploy mới trước khi Promote to Production, rồi kiểm tra lại domain production:
+
+```sh
+E2E_BASE_URL=https://your-deployment.vercel.app pnpm exec playwright test tests/browser/site.spec.ts --grep 'sidebar'
+```
+
+Khi có `E2E_BASE_URL`, kiểm thử dùng URL đó và không khởi động preview local.
+Các bài kiểm tra animation đo vị trí icon, nút mở/đóng và độ khớp sidebar với
+header/nội dung trong từng khung hình, bao gồm cả lúc thu vào và mở ra.
 
 API production yêu cầu `CORS_ORIGINS` là danh sách origin chính xác. Khi đóng gói
 API, mang `apps/api/public` cùng `dist`. Chưa có CMS, xác thực hay ghi dữ liệu.
