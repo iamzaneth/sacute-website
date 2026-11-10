@@ -1,3 +1,4 @@
+import { ContentError } from '@sacute/shared/content';
 import {
   ArgumentsHost,
   Catch,
@@ -5,12 +6,18 @@ import {
   type ExceptionFilter,
 } from '@nestjs/common';
 
-@Catch(HttpException)
+@Catch(HttpException, ContentError)
 export class HttpErrorFilter implements ExceptionFilter {
-  catch(exception: HttpException, host: ArgumentsHost) {
+  catch(exception: HttpException | ContentError, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse();
-    const statusCode = exception.getStatus();
-    const detail = exception.getResponse();
+    const statusCode =
+      exception instanceof ContentError
+        ? exception.status
+        : exception.getStatus();
+    const detail =
+      exception instanceof ContentError
+        ? exception.message
+        : exception.getResponse();
     response.status(statusCode).json({
       error: {
         statusCode,

@@ -1,4 +1,4 @@
-import { mkdir, writeFile, copyFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { loadEnv } from 'vite';
 import { pathToFileURL } from 'node:url';
 
@@ -19,8 +19,8 @@ export function validateOrigin(raw) {
 }
 export function buildSeoFiles(env) {
   const origin = validateOrigin(env.VITE_SITE_ORIGIN?.trim());
-  // No pages are approved for indexing yet. Add only reviewed routes here.
-  const indexablePaths = [];
+  // Article URLs are discovered from runtime feeds, never enumerated at build time.
+  const indexablePaths = ['/', '/information', '/scholarships', '/events'];
   const allow = Boolean(
     origin && env.VITE_ALLOW_INDEXING === 'true' && indexablePaths.length,
   );
@@ -41,9 +41,4 @@ if (
   await mkdir('build/client', { recursive: true });
   await writeFile('build/client/robots.txt', files.robots);
   await writeFile('build/client/sitemap.xml', files.sitemap);
-  // Framework fallback for unknown paths. Configure the host to return HTTP 404.
-  await copyFile('build/client/__spa-fallback.html', 'build/client/404.html');
-  console.log(
-    'SEO files generated; pending content is excluded from indexing.',
-  );
 }

@@ -1,3 +1,4 @@
+import { validateSupabaseEnvironment } from '@sacute/shared/content';
 export function validateEnvironment(input: Record<string, unknown>) {
   const port = Number(input.PORT ?? 3001);
   if (!Number.isInteger(port) || port < 1 || port > 65535)
@@ -22,5 +23,6 @@ export function validateEnvironment(input: Record<string, unknown>) {
     if (!['http:', 'https:'].includes(url.protocol) || url.origin !== origin)
       throw new Error('CORS_ORIGINS must contain exact HTTP origins');
   }
+  validateSupabaseEnvironment(input);
   return { ...input, PORT: port, CORS_ORIGINS: origins, NODE_ENV: mode };
 }

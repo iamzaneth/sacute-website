@@ -15,8 +15,7 @@ export default defineConfig({
   webServer: deployedURL
     ? undefined
     : {
-        command: 'node scripts/preview.mjs',
-        cwd: './apps/web',
+        command: 'node tests/support/preview.mjs',
         url: 'http://127.0.0.1:4173',
         reuseExistingServer: !process.env.CI,
       },

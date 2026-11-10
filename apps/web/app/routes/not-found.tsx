@@ -1,3 +1,6 @@
+import { data } from 'react-router';
+export const loader = () =>
+  data(null, { status: 404, headers: { 'Cache-Control': 'no-store' } });
 import { ActionLink } from '../components/ui';
 import { pageMeta } from '../lib/seo';
 export const meta = () =>

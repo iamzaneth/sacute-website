@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "pnpm build && node --test apps/api/test/*.test.cjs tests/seo.test.mjs",
+    "test": "pnpm build && node --test apps/api/test/*.test.cjs tests/*.test.mjs",
     "test:e2e": "playwright test",
     "preview": "pnpm --filter @sacute/web preview"
   },

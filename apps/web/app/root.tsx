@@ -6,6 +6,7 @@ import {
   ScrollRestoration,
   isRouteErrorResponse,
   useRouteError,
+  useNavigation,
   Link,
 } from 'react-router';
 import { useState, type ReactNode } from 'react';
@@ -66,6 +67,7 @@ export function Layout({ children }: { children: ReactNode }) {
   );
 }
 export default function App() {
+  const navigation = useNavigation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   return (
     <div
@@ -78,6 +80,11 @@ export default function App() {
       />
       <div className="site-body">
         <main id="main-content" tabIndex={-1}>
+          {navigation.state === 'loading' && (
+            <p role="status" className="page">
+              Đang tải nội dung…
+            </p>
+          )}
           <Outlet />
         </main>
         <Footer />
@@ -95,7 +102,13 @@ export function ErrorBoundary() {
           ? 'Không tìm thấy trang'
           : 'Không thể tải nội dung'}
       </h1>
-      <p>Vui lòng quay lại trang chủ hoặc thử lại sau.</p>
+      <p>
+        {isRouteErrorResponse(error) &&
+        error.status !== 404 &&
+        typeof error.data === 'string'
+          ? error.data
+          : 'Vui lòng quay lại trang chủ hoặc thử lại sau.'}
+      </p>
       <Link className="button button-primary" to="/">
         Về trang chủ
       </Link>
