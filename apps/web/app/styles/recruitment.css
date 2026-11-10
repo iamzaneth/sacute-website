@@ -601,3 +601,18 @@
     transition: none;
   }
 }
+
+.team-summary-description {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* Compact recruitment presentation from feat, scoped to main's design tokens. */
+.recruitment-hero-copy .recruitment-availability-note {
+  margin-top: var(--space-4);
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+.recruitment-page .faq-list details {
+  padding: 10px 0;
+}

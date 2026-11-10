@@ -16,7 +16,7 @@ export const recruitmentTeams: readonly RecruitmentTeam[] = [
   {
     id: 'communications',
     slug: 'communications',
-    name: 'Truyền thông',
+    name: 'Ban Truyền thông',
     shortDescription:
       'Thiết kế, sáng tạo hình ảnh và truyền tải thông điệp cho các hoạt động của SACUTE.',
     icon: 'megaphone',
@@ -45,7 +45,7 @@ export const recruitmentTeams: readonly RecruitmentTeam[] = [
   {
     id: 'administration',
     slug: 'administration',
-    name: 'Hành chính - Văn phòng',
+    name: 'Ban Hành chính - Văn phòng',
     shortDescription:
       'Tư vấn sinh viên, xử lý hồ sơ và cùng chăm lo hoạt động nội bộ trung tâm.',
     icon: 'clipboard',
@@ -74,7 +74,7 @@ export const recruitmentTeams: readonly RecruitmentTeam[] = [
   {
     id: 'academics',
     slug: 'academics',
-    name: 'Học tập',
+    name: 'Ban Học tập',
     shortDescription:
       'Kết nối cộng đồng học tập, tổ chức ôn tập và hỗ trợ giải đáp cho sinh viên.',
     icon: 'graduation-cap',
@@ -105,7 +105,7 @@ export const recruitmentTeams: readonly RecruitmentTeam[] = [
   {
     id: 'skills-workshops',
     slug: 'skills-workshops',
-    name: 'Hội thảo Kỹ năng',
+    name: 'Ban Hội thảo Kỹ năng',
     shortDescription:
       'Lên ý tưởng, tổ chức hội thảo và phối hợp vận hành các chương trình kỹ năng.',
     icon: 'presentation',
@@ -135,7 +135,7 @@ export const recruitmentTeams: readonly RecruitmentTeam[] = [
   {
     id: 'housing-employment',
     slug: 'housing-employment',
-    name: 'Nhà trọ - Việc làm',
+    name: 'Ban Nhà trọ - Việc làm',
     shortDescription:
       'Tư vấn nhà trọ, việc làm và xây dựng nội dung hỗ trợ sinh viên.',
     icon: 'house',

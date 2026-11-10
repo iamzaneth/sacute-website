@@ -220,10 +220,9 @@ for (const width of [390, 1366]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/recruitment#academics');
     await expect(page.locator('#academics')).toHaveAttribute('open', '');
-    await expect(page.locator('.team-card[href="#academics"]')).toHaveAttribute(
-      'aria-current',
-      'true',
-    );
+    await expect(page.locator('.team-overview')).toHaveCount(0);
+    await expect(page.locator('.team-summary-description')).toHaveCount(5);
+    await expect(page.locator('.recruitment-availability-note')).toBeVisible();
     await expect(page.locator('#academics .editorial-note')).toBeVisible();
     const slugs = [
       'communications',
@@ -232,7 +231,7 @@ for (const width of [390, 1366]) {
       'housing-employment',
     ];
     for (const slug of slugs) {
-      await page.locator(`.team-card[href="#${slug}"]`).click();
+      await page.locator(`#${slug} summary`).click();
       await expect(page).toHaveURL(new RegExp(`#${slug}$`));
       await expect(page.locator(`#${slug}`)).toHaveAttribute('open', '');
       await expect(page.locator('.team-detail[open]')).toHaveCount(1);

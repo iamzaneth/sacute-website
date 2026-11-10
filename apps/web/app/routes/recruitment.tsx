@@ -40,29 +40,24 @@ export default function Recruitment() {
             Tuyển thành viên <span>SACUTE</span>
           </h1>
           <p>
-            Tìm hiểu 5 ban hoạt động, khám phá công việc phù hợp với sở thích và
-            cách bạn có thể đóng góp cho cộng đồng sinh viên.
+            Tìm hiểu các ban hoạt động, khám phá công việc phù hợp với sở thích
+            và cách bạn có thể đóng góp cho cộng đồng sinh viên.
           </p>
           <a className="button button-primary" href="#teams">
             Khám phá 5 ban
             <ArrowDownRight size={18} aria-hidden="true" />
           </a>
+          <p className="recruitment-availability-note">
+            Thời gian và cách đăng ký sẽ được cập nhật khi có thông báo chính
+            thức.
+          </p>
         </div>
         <div className="recruitment-hero-brand">
           <BrandLogo />
           <span>5 BAN · CÙNG TÌM HIỂU</span>
         </div>
       </header>
-      <div className="recruitment-status">
-        <span className="status-chip">
-          <span />
-          Chưa có đợt tuyển được công bố
-        </span>
-        <p>
-          Thời gian và cách đăng ký sẽ được cập nhật khi có thông báo chính
-          thức.
-        </p>
-      </div>
+
       <TeamExplorer />
       <section className="process-section">
         <div>
