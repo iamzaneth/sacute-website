@@ -1,56 +1,30 @@
-import { createServer } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
-import { resolve, extname, sep } from 'node:path';
-
-const root = resolve('build/client');
-const mime = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.svg': 'image/svg+xml',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.txt': 'text/plain',
-  '.xml': 'application/xml',
-  '.data': 'text/x-script',
-};
-const port = Number(process.env.PORT ?? 4173);
-const server = createServer(async (request, response) => {
-  try {
-    const pathname = decodeURIComponent(
-      new URL(request.url, 'http://localhost').pathname,
-    );
-    let file = resolve(root, `.${pathname}`);
-    if (file !== root && !file.startsWith(root + sep)) {
-      response.writeHead(403).end();
-      return;
-    }
-    let status = 200;
-    try {
-      if ((await stat(file)).isDirectory()) file = resolve(file, 'index.html');
-      await stat(file);
-    } catch {
-      status = 404;
-      file = resolve(
-        root,
-        pathname.endsWith('.data') ? '__missing.data' : '404.html',
-      );
-    }
-    const data = await readFile(file);
-    response.writeHead(status, {
-      'Content-Type': mime[extname(file)] ?? 'application/octet-stream',
-      'X-Content-Type-Options': 'nosniff',
-    });
-    response.end(request.method === 'HEAD' ? undefined : data);
-  } catch {
-    response.writeHead(404).end('Not found');
-  }
-});
-server.listen(port, '127.0.0.1', () =>
-  console.log(`SACUTE preview: http://127.0.0.1:${port}`),
+// Production SSR preview: serves assets and invokes the same React Router server build.
+import express from 'express';
+import { createRequestHandler } from '@react-router/express';
+import { readdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+const bundles = (await readdir('build/server')).filter((name) =>
+  name.startsWith('nodejs'),
 );
+if (bundles.length !== 1) throw new Error('Expected one Node SSR bundle');
+const build = await import(
+  pathToFileURL(resolve('build/server', bundles[0], 'index.js')).href
+);
+const app = express();
+app.disable('x-powered-by');
+app.use(
+  express.static(resolve('build/client'), { index: false, redirect: false }),
+);
+app.use((request, response, next) => {
+  if (/^\/(assets|branding|media)\//.test(request.path)) {
+    response.status(404).end();
+    return;
+  }
+  next();
+});
+app.use(createRequestHandler({ build, mode: 'production' }));
+const server = app.listen(Number(process.env.PORT ?? 4173), '127.0.0.1');
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.on(signal, () => {
     server.closeAllConnections();

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { localContent } from '../../packages/shared/src/index';
+import { testContent } from '../support/supabase.mjs';
 
 for (const kind of ['information', 'scholarships', 'events'] as const) {
-  for (const item of localContent[kind]) {
+  for (const item of testContent[kind]) {
     test(`${kind}: ${item.slug} opens from its card and reloads`, async ({
       page,
     }) => {
@@ -38,7 +38,7 @@ for (const kind of ['information', 'scholarships', 'events'] as const) {
           ).toHaveAttribute('src', item.images[1].url);
         }
         await page.keyboard.press('Escape');
-        await expect(viewer).toHaveCount(0);
+        await expect(viewer).not.toBeVisible();
         await expect(photo).toBeFocused();
       }
       expect(

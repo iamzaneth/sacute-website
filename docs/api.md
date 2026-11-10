@@ -1,44 +1,28 @@
-# API contract
+# API công khai
 
-Base path: `/api/v1`. No authentication or write endpoints are implemented. All content currently comes from the shared local provider; no database calls are made.
+Base URL khi chạy local: `http://localhost:3001/api/v1`. Web production SSR không yêu cầu API này được triển khai riêng.
 
-| Endpoint            | Response                                                  |
-| ------------------- | --------------------------------------------------------- |
-| `GET /health`       | `{ "data": { "status": "ok", "service": "sacute-api" } }` |
-| `GET /information`  | Paginated `Information` records                           |
-| `GET /scholarships` | Paginated `Scholarship` records                           |
-| `GET /events`       | Paginated `StudentEvent` records                          |
+| Phương thức | URL             | Nội dung                 |
+| ----------- | --------------- | ------------------------ |
+| GET         | `/health`       | Trạng thái tiến trình    |
+| GET         | `/information`  | Thông báo và hoạt động   |
+| GET         | `/scholarships` | Học bổng                 |
+| GET         | `/events`       | Sự kiện                  |
+| GET         | `/posts/:slug`  | Chi tiết bài đã xuất bản |
 
-Lists use this envelope (an empty result is shown):
+Tham số danh sách: `page` (1–100000, mặc định 1), `limit` (1–100, mặc định 12), `q` (tối đa 200 ký tự), `category` (tối đa 100 ký tự). Tham số không xác định bị từ chối. Ví dụ: `/information?category=Hoạt%20động&q=sinh%20viên&page=1&limit=12`.
+
+API Information mặc định kết hợp thông báo và sự kiện; `category=Thông báo`/`Hoạt động` chọn từng nhóm. Kind của sự kiện vẫn là `event`; chỉ category hiển thị thay đổi. Detail giữ category thật. Truy vấn theo PostgreSQL ILIKE tìm title/summary, giữ dấu tiếng Việt. Thứ tự công bố giảm dần theo ngày, thời điểm rồi id tăng dần.
 
 ```json
 {
   "data": [],
-  "meta": {
-    "total": 0,
-    "page": 1,
-    "limit": 12,
-    "source": "local",
-    "contentStatus": "pending-verification"
-  }
+  "meta": { "total": 0, "page": 1, "limit": 12, "source": "supabase" }
 }
 ```
 
-`total` counts the filtered collection before pagination. Defaults: `page=1`, `limit=12`. `page` must be an integer from 1–100000; `limit` from 1–100. `q` is a case-insensitive Vietnamese title/summary search, at most 200 characters. `category` is an exact category match, at most 100 characters. Unknown query parameters are rejected. An out-of-range valid page returns an empty list.
+Detail trả `{ "data": { ... }, "meta": { "source": "supabase" } }`. Bài viết có camelCase, mảng `images: [{url,alt,width?,height?}]`, `coverImage` tùy chọn. Học bổng thêm provider/eligibility/opensAt/closesAt/applicationUrl/status; sự kiện thêm startsAt/endsAt/startsOn/endsOn/location/registrationUrl/status. Status ở detail học bổng/sự kiện là lifecycle, độc lập với trạng thái xuất bản. Date-only giữ nguyên ngày, không chuyển thành midnight timestamp.
 
-Validation and HTTP errors use:
+Không trả bài draft/archived hoặc visible_from tương lai. 404 cho slug không có/không công khai, 400 cho query sai, 503 cho lỗi cơ sở dữ liệu hoặc timeout. Lỗi có dạng `{ "error": { "statusCode": 503, "message": "Không thể tải nội dung. Vui lòng thử lại sau." } }`. Không trả tập rỗng khi truy vấn thất bại. Response nội dung `Cache-Control: no-store`.
 
-```json
-{
-  "error": {
-    "statusCode": 400,
-    "message": ["page must not be less than 1"]
-  }
-}
-```
-
-`message` may be a string or a string array. Unknown routes return HTTP 404 in the same envelope. NestJS retains its default handling for unexpected internal exceptions; stack traces are not sent to clients.
-
-All content types are defined in `packages/shared/src/index.ts`. The API has no dynamic detail endpoints; frontend `/posts/:slug` pages are prerendered from the same approved local content.
-
-CORS responds only for exact configured origins. It is a browser access policy, not authentication. Set `CORS_ORIGINS` to a comma-separated list of exact HTTP(S) origins; production startup fails if it is absent. `PORT` defaults to 3001 and must be from 1–65535. Each API process loads `apps/api/.env` when started with the documented workspace commands.
+API kiểm tra biến `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `PORT`, `NODE_ENV`, `CORS_ORIGINS`. Production bắt buộc CORS allowlist là các HTTP(S) origin chính xác, phân cách dấu phẩy. Không hỗ trợ wildcard origin. Phương thức CORS: GET, HEAD, OPTIONS. Không cung cấp endpoint ghi hoặc admin publishing trong thay đổi này.

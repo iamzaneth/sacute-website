@@ -63,7 +63,10 @@ export function PostGallery({
       <dialog
         className="photo-viewer"
         style={{
-          width: `min(${active.width}px, calc(100vw - 32px), calc((100dvh - 32px) * ${active.width / active.height}))`,
+          width:
+            active.width && active.height
+              ? `min(${active.width}px, calc(100vw - 32px), calc((100dvh - 32px) * ${active.width / active.height}))`
+              : 'calc(100vw - 32px)',
         }}
         ref={dialog}
         aria-label={`Ảnh đính kèm: ${title}`}

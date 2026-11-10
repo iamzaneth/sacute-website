@@ -9,11 +9,10 @@ playwright-report
 apps/web/public/branding/logo-sacute.svg
 apps/web/public/branding/profile/favicon.svg
 tmp/
-packages/shared/src/generated/
 
 # Supplied cover artwork with embedded font subsets.
 apps/web/public/branding/profile/frame-03.svg
 apps/web/public/branding/profile/Montserrat-OFL.txt
 
-# Published plain-text posts must preserve original line breaks and spacing.
-apps/api/mock-data/posts/**/content.md
+
+.vercel/

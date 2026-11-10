@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "pnpm build && node --test apps/api/test/*.test.cjs tests/seo.test.mjs",
+    "test": "pnpm build && node --test apps/api/test/*.test.cjs tests/*.test.mjs",
     "test:e2e": "playwright test",
     "preview": "pnpm --filter @sacute/web preview"
   },
@@ -22,6 +22,7 @@
     "@axe-core/playwright": "^4.10.2",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.1",
+    "@supabase/supabase-js": "^2.119.0",
     "@types/node": "^24.10.0",
     "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.0.1",

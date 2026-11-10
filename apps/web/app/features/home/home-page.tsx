@@ -8,7 +8,7 @@ import {
   Users,
 } from 'lucide-react';
 import { ActionLink, EmptyState, SectionHeading } from '../../components/ui';
-import { localContent } from '@sacute/shared';
+import type { ContentItem } from '@sacute/shared';
 import { ArticleCard } from '../content/article-card';
 import { centerProfile } from '../../components/brand';
 
@@ -35,7 +35,15 @@ const destinations = [
     number: '03',
   },
 ];
-export function HomePage() {
+export function HomePage({
+  content,
+}: {
+  content: {
+    information: ContentItem[];
+    scholarships: ContentItem[];
+    events: ContentItem[];
+  };
+}) {
   return (
     <div className="page home-page">
       <section
@@ -86,8 +94,8 @@ export function HomePage() {
           to="/information"
         />
         <div className="latest-grid">
-          {localContent.information.length ? (
-            <ArticleCard item={localContent.information[0]} preview />
+          {content.information.length ? (
+            <ArticleCard item={content.information[0]} preview />
           ) : (
             <EmptyState icon={Bell} title="Thông tin mới đang được chuẩn bị">
               Các thông báo sẽ xuất hiện tại đây sau khi nội dung chính thức
@@ -121,8 +129,8 @@ export function HomePage() {
             to="/scholarships"
             linkLabel="Khám phá"
           />
-          {localContent.scholarships.length ? (
-            <ArticleCard item={localContent.scholarships[0]} preview />
+          {content.scholarships.length ? (
+            <ArticleCard item={content.scholarships[0]} preview />
           ) : (
             <EmptyState
               compact
@@ -140,29 +148,32 @@ export function HomePage() {
             to="/events"
             linkLabel="Khám phá"
           />
-          {localContent.events.length ? (
+          {content.events.length ? (
             <div className="home-events">
-              {localContent.events.slice(0, 2).map((item) => (
-                <Link
-                  key={item.id}
-                  className="home-event"
-                  to={`/posts/${item.slug}`}
-                >
-                  {item.images?.[0] && (
-                    <img
-                      src={item.images[0].url}
-                      alt=""
-                      width={112}
-                      height={90}
-                      loading="lazy"
-                    />
-                  )}
-                  <div>
-                    <p className="eyebrow">{item.eventName}</p>
-                    <h3>{item.title}</h3>
-                  </div>
-                </Link>
-              ))}
+              {content.events.slice(0, 2).map((item) => {
+                const image = item.coverImage ?? item.images?.[0];
+                return (
+                  <Link
+                    key={item.id}
+                    className="home-event"
+                    to={`/posts/${item.slug}`}
+                  >
+                    {image && (
+                      <img
+                        src={image.url}
+                        alt=""
+                        width={112}
+                        height={90}
+                        loading="lazy"
+                      />
+                    )}
+                    <div>
+                      <p className="eyebrow">{item.eventName}</p>
+                      <h3>{item.title}</h3>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <EmptyState

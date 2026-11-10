@@ -1,26 +1,39 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
-  localContent,
-  listContent,
-  type ContentKind,
-  type ContentMap,
-  type ListQuery,
-  type ListResponse,
+  createPublicSupabaseClient,
+  SupabaseContentRepository,
+} from '@sacute/shared/content';
+import type { PublicPost } from '@sacute/shared/content';
+import type {
+  ContentKind,
+  ContentMap,
+  ListQuery,
+  ListResponse,
 } from '@sacute/shared';
-
 export abstract class ContentRepository {
   abstract list<K extends ContentKind>(
     kind: K,
     query: ListQuery,
   ): Promise<ListResponse<ContentMap[K]>>;
+  abstract getPostBySlug(slug: string): Promise<PublicPost | null>;
 }
-
 @Injectable()
-export class LocalContentRepository extends ContentRepository {
-  async list<K extends ContentKind>(
-    kind: K,
-    query: ListQuery,
-  ): Promise<ListResponse<ContentMap[K]>> {
-    return listContent<ContentMap[K]>(localContent[kind], query);
+export class CloudContentRepository extends ContentRepository {
+  private readonly store: SupabaseContentRepository;
+  constructor(config: ConfigService) {
+    super();
+    this.store = new SupabaseContentRepository(
+      createPublicSupabaseClient({
+        SUPABASE_URL: config.get('SUPABASE_URL'),
+        SUPABASE_PUBLISHABLE_KEY: config.get('SUPABASE_PUBLISHABLE_KEY'),
+      }),
+    );
+  }
+  list<K extends ContentKind>(kind: K, query: ListQuery) {
+    return this.store.list(kind, query);
+  }
+  getPostBySlug(slug: string) {
+    return this.store.getPostBySlug(slug);
   }
 }

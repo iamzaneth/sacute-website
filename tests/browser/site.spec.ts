@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { localContent } from '../../packages/shared/src/index';
+import { testContent } from '../support/supabase.mjs';
 
-const notices = localContent.information.filter(
+const notices = testContent.information.filter(
   (item) => item.category === 'Thông báo',
 );
-const searchTitle = localContent.events[0].title;
+const searchTitle = testContent.events[0].title;
 
 const routes = [
   '/',
@@ -319,9 +319,9 @@ test('search and filters update the URL, reset, and recover empty results', asyn
     filters.getByRole('button', { name: 'Tất cả', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.article-card')).toHaveCount(
-    localContent.information.length,
+    testContent.information.length,
   );
-  for (const item of localContent.information)
+  for (const item of testContent.information)
     await expect(
       page.getByRole('heading', { name: item.title, exact: true }),
     ).toBeVisible();
@@ -501,7 +501,7 @@ test('explicit all categories survives search, reload, and browser history', asy
   await expect(page.getByLabel('Tìm kiếm nội dung')).toHaveValue(searchTitle);
   await page.getByRole('button', { name: 'Xóa bộ lọc' }).click();
   await expect(page.locator('.result-count')).toHaveText(
-    `${localContent.information.length} bài viết`,
+    `${testContent.information.length} bài viết`,
   );
   await expect(page.getByLabel('Tìm kiếm nội dung')).toHaveValue('');
   await expect(all).toHaveAttribute('aria-pressed', 'true');
@@ -511,7 +511,7 @@ test('explicit all categories survives search, reload, and browser history', asy
   await expect(page.locator('.result-count')).toHaveText('1 bài viết');
   await page.goForward();
   await expect(page.locator('.result-count')).toHaveText(
-    `${localContent.information.length} bài viết`,
+    `${testContent.information.length} bài viết`,
   );
   await page.goto('/scholarships?q=missing&category=Học+bổng');
   await page.getByRole('button', { name: 'Xóa bộ lọc' }).click();
@@ -519,7 +519,7 @@ test('explicit all categories survives search, reload, and browser history', asy
     page.getByRole('button', { name: 'Tất cả', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(
-    page.getByRole('heading', { name: localContent.scholarships[0].title }),
+    page.getByRole('heading', { name: testContent.scholarships[0].title }),
   ).toBeVisible();
 });
 

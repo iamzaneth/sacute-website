@@ -1,103 +1,45 @@
-# SACUTE Web
+# SACUTE Website
 
-Website thông tin sinh viên của Trung tâm Tư vấn và Hỗ trợ Sinh viên (SACUTE).
-Monorepo pnpm gồm frontend React Router, API NestJS và dữ liệu/kiểu dùng chung.
-Không cần cơ sở dữ liệu để chạy hoặc build.
+Website tiếng Việt của Trung tâm Tư vấn và Hỗ trợ Sinh viên, dùng React Router 7 / React 19, NestJS 11 và Supabase. Nội dung công khai được đọc từ PostgreSQL và ảnh từ Supabase Storage; thương hiệu, bố cục và tài nguyên thiết kế vẫn nằm trong repository.
 
-## Chạy dự án
+## Phát triển
 
-Yêu cầu Node.js >=22.12 và pnpm 11.18.0. Kiểm thử trình duyệt dùng Google Chrome.
+Yêu cầu Node ≥ 22.12, pnpm 11.18.0.
 
 ```sh
 pnpm install --frozen-lockfile
+cp apps/web/.env.example apps/web/.env
+cp apps/api/.env.example apps/api/.env
+# Điền SUPABASE_URL và SUPABASE_PUBLISHABLE_KEY vào cả hai ứng dụng.
 pnpm dev
 ```
 
-Frontend: http://127.0.0.1:5173. API: http://localhost:3001/api/v1.
-Trên PowerShell có thể dùng `pnpm.cmd` nếu execution policy chặn `pnpm`.
-
-Cấu hình mặc định không cần `.env`. Khi cần, sao chép `.env.example` của từng app
-thành `.env`. Khởi động lại sau khi sửa biến môi trường. Không đưa bí mật vào
-biến `VITE_*` vì chúng được gửi tới trình duyệt.
-
-## Cấu trúc
-
-| Thư mục                    | Vai trò                                           |
-| -------------------------- | ------------------------------------------------- |
-| `apps/web/app`             | Routes, giao diện, chức năng và style             |
-| `apps/web/public/branding` | Logo, avatar, ảnh bìa và giấy phép font           |
-| `apps/api/src`             | Controller, service, repository và cấu hình API   |
-| `apps/api/mock-data/posts` | Nội dung, metadata và ảnh gốc của bài viết        |
-| `packages/shared/src`      | Kiểu dữ liệu, thông tin tổ chức và lọc/phân trang |
-| `scripts`                  | Chuẩn bị dữ liệu bài viết và media                |
-| `tests`                    | Kiểm thử trang prerender và hành vi trình duyệt   |
-| `docs`                     | Hợp đồng API và kiến trúc                         |
-
-## Nội dung và giao diện
-
-- `/information`: thông báo và hoạt động; mặc định chọn Thông báo.
-- `/scholarships`: thông tin học bổng.
-- `/events`: Chuyến xe đoàn viên và Xuân tình nguyện.
-- `/posts/:slug`: nội dung đầy đủ, ảnh và album của bài viết.
-- `/contact`: thông tin liên hệ; chưa nhận gửi biểu mẫu.
-- `/recruitment`: giới thiệu các ban, mô tả công việc và FAQ; chưa nhận đăng ký.
-
-Danh sách hỗ trợ tìm kiếm, bộ lọc lưu trong URL và lịch sử trình duyệt.
-Ảnh album hỗ trợ chuột, mũi tên và Escape. Menu desktop thu gọn được;
-menu mobile giữ focus và đóng bằng Escape.
-
-Xem [hướng dẫn quản lý bài viết](apps/api/mock-data/README.md). Không sửa các
-bản dữ liệu/media sinh tự động. Build không cần bản HTML đầu vào trong `tmp`.
-
-Thông tin tổ chức và liên hệ nằm tại `packages/shared/src/index.ts`.
-Nội dung các ban nằm tại `apps/web/app/features/recruitment/data/recruitment-teams.ts`.
-Avatar và ảnh bìa cấu hình ở `apps/web/app/components/brand.tsx`; favicon sinh từ
-avatar lúc dev/build. Ảnh bìa SVG nhúng font Montserrat để giữ vị trí chữ;
-giữ giấy phép `Montserrat-OFL.txt` cùng artwork khi thay hoặc phân phối ảnh bìa.
-
-## Kiểm tra và build
+Web: `http://localhost:5173`; API: `http://localhost:3001/api/v1`. NestJS là ứng dụng backend độc lập hợp lệ; web SSR đọc trực tiếp Supabase qua cùng lớp truy vấn, không cần triển khai API riêng.
 
 ```sh
 pnpm lint
 pnpm format:check
 pnpm typecheck
 pnpm test
+pnpm build
+pnpm exec playwright install --with-deps chrome
 pnpm test:e2e
 ```
 
-`pnpm test` build dự án rồi chạy kiểm thử API, lọc/phân trang và HTML/SEO.
-Chạy trước `test:e2e`, vốn mở preview tĩnh và kiểm tra bằng Chrome.
-Kết quả trong `test-results` và `playwright-report` là tệp sinh tự động, có thể xóa.
+Build không cần kết nối cơ sở dữ liệu. Các kiểm thử dùng dữ liệu tổng hợp và HTTP adapter riêng trong `tests/support`; không cần thông tin đăng nhập production. `pnpm preview` chạy bản SSR đã build và cần biến môi trường runtime. Với file môi trường của web:
 
 ```sh
-pnpm build
-pnpm preview
+cd apps/web
+node --env-file=.env scripts/preview.mjs
 ```
 
-Preview production tại http://127.0.0.1:4173. Chạy API riêng bằng
-`pnpm --filter @sacute/api start` sau khi build.
+## Nội dung và triển khai
 
-## Hosting và SEO
+Xuất bản trong Supabase Table Editor hoặc công cụ quản trị đã được cấp quyền. Đặt `status=published`, `visible_from` phù hợp, metadata, chi tiết học bổng/sự kiện và ảnh `post-media`. Một sự kiện là một bản ghi, có thể xuất hiện ở cả trang Thông tin và Sự kiện. Không cần sửa mã nguồn hoặc build lại để xuất bản slug mới. Chưa có giao diện CMS trong thay đổi này.
 
-Triển khai toàn bộ `apps/web/build/client`, gồm HTML, `.data` và assets.
-Host phải phục vụ `index.html` trong thư mục route; đường dẫn không tồn tại
-trả `404.html` với HTTP 404. Asset hoặc dữ liệu không tồn tại cũng phải trả 404.
-Không rewrite mọi request về trang chủ với HTTP 200.
+Vercel: root `apps/web`, framework **React Router**, bỏ override Output Directory cũ `build/client`. Đặt `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` cho runtime; `VITE_SITE_ORIGIN=https://sacute.vercel.app` cho canonical và chỉ bật `VITE_ALLOW_INDEXING=true` khi duyệt cho phép lập chỉ mục. Không đặt secret/service-role key trong ứng dụng web.
 
-Các trang chính và bài đã xuất bản được prerender với `ssr: false`.
-Danh sách đường dẫn đọc trực tiếp metadata để tránh cache dữ liệu biên dịch cũ.
-Frontend không cần API khi render; API dùng cùng collection dữ liệu local.
-
-Build hiện dùng `noindex, nofollow`, robots `Disallow: /` và sitemap rỗng.
-Sau khi có domain HTTPS chính thức, đặt `VITE_SITE_ORIGIN` rồi build lại.
-Chỉ bật lập chỉ mục sau khi duyệt nội dung, đánh dấu trang được xác nhận trong
-`pageMeta` và cập nhật `indexablePaths` ở `apps/web/scripts/generate-seo.mjs`.
-Chỉ đặt `VITE_ALLOW_INDEXING=true` chưa đủ để đưa trang chưa duyệt lên search.
-
-Với Vercel: Root Directory `apps/web`, bật nguồn ngoài root, Node.js 24.x,
-Install Command `pnpm install --frozen-lockfile`, Build Command `pnpm run build`,
-Output Directory `build/client`. Build frontend tự chuẩn bị shared package.
-
-API production yêu cầu `CORS_ORIGINS` là danh sách origin chính xác. Khi đóng gói
-API, mang `apps/api/public` cùng `dist`. Chưa có CMS, xác thực hay ghi dữ liệu.
-Xem [hợp đồng API](docs/api.md) và [kiến trúc](docs/architecture.md).
+- [Kiến trúc và bảo mật](docs/architecture.md)
+- [API](docs/api.md)
+- [Triển khai và khắc phục lỗi](docs/deployment.md)
+- [Xác minh và lưu trữ nguồn di chuyển](docs/migration.md)

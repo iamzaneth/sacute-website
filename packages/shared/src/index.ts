@@ -1,5 +1,3 @@
-import { mockContent } from './generated/mock-content';
-
 export const organization = {
   shortName: 'SACUTE',
   name: 'Trung tâm Tư vấn và Hỗ trợ Sinh viên',
@@ -36,13 +34,16 @@ export const navigation: readonly { path: PublicPath; label: string }[] = [
 export interface PostImage {
   url: string;
   alt: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
 }
 export interface ContentItem {
   id: string;
   slug: string;
   title: string;
+  kind: 'information' | 'scholarship' | 'event';
+  contentFormat?: 'plain-text' | 'markdown';
+  coverImage?: PostImage;
   originalTitle?: string;
   eventName?: string;
   summary: string;
@@ -63,6 +64,7 @@ export interface Scholarship extends ContentItem {
   kind: 'scholarship';
   provider?: string;
   eligibility?: string;
+  applicationUrl?: string;
   opensAt?: string;
   closesAt?: string;
   status: 'upcoming' | 'open' | 'closed';
@@ -70,6 +72,8 @@ export interface Scholarship extends ContentItem {
 export interface StudentEvent extends ContentItem {
   kind: 'event';
   startsAt?: string;
+  endsAt?: string;
+  registrationUrl?: string;
   startsOn?: string;
   endsOn?: string;
   location?: string;
@@ -78,7 +82,7 @@ export interface StudentEvent extends ContentItem {
 }
 export type ContentKind = 'information' | 'scholarships' | 'events';
 export interface ContentMap {
-  information: Information;
+  information: Information | StudentEvent;
   scholarships: Scholarship;
   events: StudentEvent;
 }
@@ -94,51 +98,6 @@ export interface ListResponse<T> {
     total: number;
     page: number;
     limit: number;
-    source: 'local';
-    contentStatus: 'pending-verification';
-  };
-}
-
-// Prepared from apps/api/mock-data for the API and static prerendering.
-export const localContent: { [K in ContentKind]: readonly ContentMap[K][] } = {
-  ...mockContent,
-  information: [
-    ...mockContent.information,
-    ...mockContent.events.map((item) => ({
-      ...item,
-      kind: 'information' as const,
-      category: 'Hoạt động',
-    })),
-  ].sort(
-    (a, b) =>
-      Date.parse(b.publishedAt ?? '1970-01-01') -
-      Date.parse(a.publishedAt ?? '1970-01-01'),
-  ),
-};
-
-export function listContent<T extends ContentItem>(
-  items: readonly T[],
-  query: ListQuery = {},
-): ListResponse<T> {
-  const page = query.page ?? 1;
-  const limit = query.limit ?? 12;
-  const search = query.q?.trim().toLocaleLowerCase('vi');
-  const filtered = items.filter(
-    (item) =>
-      (!query.category || item.category === query.category) &&
-      (!search ||
-        `${item.title} ${item.summary}`
-          .toLocaleLowerCase('vi')
-          .includes(search)),
-  );
-  return {
-    data: filtered.slice((page - 1) * limit, page * limit),
-    meta: {
-      total: filtered.length,
-      page,
-      limit,
-      source: 'local',
-      contentStatus: 'pending-verification',
-    },
+    source: 'supabase';
   };
 }

@@ -54,6 +54,7 @@ export function ArticleCard({
   preview?: boolean;
   detail?: boolean;
 }) {
+  const thumbnail = item.coverImage ?? item.images?.[0];
   const titleId = useId();
   const location = useLocation();
   const Heading = detail ? 'h1' : preview ? 'h3' : 'h2';
@@ -72,13 +73,13 @@ export function ArticleCard({
           state={{ returnTo: `${location.pathname}${location.search}` }}
           aria-labelledby={titleId}
         >
-          {item.images?.[0] && (
+          {thumbnail && (
             <div className="post-thumbnail">
               <img
-                src={item.images[0].url}
-                alt={item.images[0].alt}
-                width={item.images[0].width}
-                height={item.images[0].height}
+                src={thumbnail.url}
+                alt={thumbnail.alt}
+                width={thumbnail.width}
+                height={thumbnail.height}
                 loading="lazy"
               />
             </div>

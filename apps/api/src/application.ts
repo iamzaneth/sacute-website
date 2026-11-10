@@ -3,7 +3,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { HttpErrorFilter } from './common/http-error.filter';
 
@@ -13,10 +12,16 @@ export async function createApplication() {
   });
   const config = app.get(ConfigService);
   app.setGlobalPrefix('api/v1');
-  app.useStaticAssets(join(__dirname, '../public/media/mock'), {
-    prefix: '/media/mock/',
-    index: false,
-  });
+  app.use(
+    (
+      _request: unknown,
+      response: { setHeader: (name: string, value: string) => void },
+      next: () => void,
+    ) => {
+      response.setHeader('Cache-Control', 'no-store');
+      next();
+    },
+  );
   app.enableCors({
     origin: config.get<string[]>('CORS_ORIGINS'),
     methods: ['GET', 'HEAD', 'OPTIONS'],

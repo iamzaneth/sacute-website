@@ -6,7 +6,7 @@ import type {
 } from '@sacute/shared';
 import type { ContentProvider } from './content-provider';
 
-// Opt-in browser adapter. Prerendering intentionally uses the local provider.
+// Optional adapter for independently hosted API consumers; SSR reads Supabase directly.
 export function createApiContentProvider(baseUrl: string): ContentProvider {
   return {
     async list<K extends ContentKind>(

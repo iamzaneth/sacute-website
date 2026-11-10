@@ -1,6 +1,6 @@
-import { Form, useSearchParams } from 'react-router';
+import { Form, Link, useSearchParams } from 'react-router';
 import { BookOpen, CalendarDays, GraduationCap, Search, X } from 'lucide-react';
-import type { ContentItem, ContentKind } from '@sacute/shared';
+import type { ContentItem, ContentKind, ListResponse } from '@sacute/shared';
 import { EmptyState, PageIntro } from '../../components/ui';
 import { ArticleCard } from './article-card';
 
@@ -39,15 +39,19 @@ const copy = {
     detail:
       'Lịch trình, địa điểm và hướng dẫn tham gia sẽ xuất hiện khi có thông tin chính thức. Hẹn gặp bạn ở những cập nhật sắp tới.',
     icon: CalendarDays,
-    categories: ['Xuân tình nguyện', 'Chuyến xe đoàn viên'],
+    categories: [] as string[],
   },
 };
 export function ContentList({
   kind,
   items,
+  meta,
+  categoryOptions,
 }: {
   kind: ContentKind;
   items: ContentItem[];
+  meta: ListResponse<ContentItem>['meta'];
+  categoryOptions?: string[];
 }) {
   const page = copy[kind];
   const [params, setParams] = useSearchParams();
@@ -55,21 +59,13 @@ export function ContentList({
   const category =
     params.get('category') ?? (kind === 'information' ? 'Thông báo' : '');
   const hasFilters = Boolean(query || category);
-  const categories =
-    kind === 'events'
-      ? [...new Set(items.map((item) => item.eventName ?? item.category))]
-      : page.categories;
-  const visible = items.filter(
-    (item) =>
-      (!category || item.category === category) &&
-      `${item.title} ${item.summary}`
-        .toLocaleLowerCase('vi')
-        .includes(query.toLocaleLowerCase('vi')),
-  );
+  const categories = categoryOptions ?? page.categories;
+  const visible = items;
   function selectCategory(value: string) {
     const next = new URLSearchParams(params);
     // An explicit empty category distinguishes “all” from the initial default.
     next.set('category', value);
+    next.delete('page');
     setParams(next, { preventScrollReset: true });
   }
   return (
@@ -101,7 +97,7 @@ export function ContentList({
           </button>
         </Form>
         <span className="result-count" aria-live="polite">
-          {visible.length} bài viết
+          {meta.total} bài viết
         </span>
       </div>
       <div
@@ -152,6 +148,27 @@ export function ContentList({
           </EmptyState>
         )}
       </div>
+      {meta.total > meta.limit && (
+        <nav className="filter-tabs" aria-label="Phân trang">
+          {meta.page > 1 && (
+            <Link
+              to={`?${new URLSearchParams({ ...Object.fromEntries(params), page: String(meta.page - 1) })}`}
+            >
+              Trang trước
+            </Link>
+          )}
+          <span>
+            Trang {meta.page} / {Math.ceil(meta.total / meta.limit)}
+          </span>
+          {meta.page * meta.limit < meta.total && (
+            <Link
+              to={`?${new URLSearchParams({ ...Object.fromEntries(params), page: String(meta.page + 1) })}`}
+            >
+              Trang sau
+            </Link>
+          )}
+        </nav>
+      )}
       {kind !== 'events' && (
         <aside className="information-note">
           <span className="tiny-dot" />
