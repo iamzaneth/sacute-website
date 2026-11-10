@@ -15,6 +15,7 @@
   font-synthesis: none;
   --sidebar-expanded-width: 244px;
   --sidebar-width: var(--sidebar-expanded-width);
+  --sidebar-rail-width: 104px;
   --header-height: 76px;
 }
 * {
@@ -201,8 +202,7 @@ h3 {
   letter-spacing: 1px;
 }
 .site-body {
-  margin-left: var(--sidebar-width);
-  transition: margin-left var(--duration-sidebar) var(--ease-sidebar);
+  margin-left: var(--sidebar-rail-width);
 }
 .institution-header {
   min-height: 100px;
@@ -220,12 +220,9 @@ h3 {
   z-index: 20;
   height: var(--header-height);
   min-height: var(--header-height);
-  margin-left: var(--sidebar-width);
-  width: calc(100% - var(--sidebar-width));
+  margin-left: var(--sidebar-rail-width);
+  width: calc(100% - var(--sidebar-rail-width));
   padding: 14px 24px;
-  transition:
-    margin-left var(--duration-sidebar) var(--ease-sidebar),
-    width var(--duration-sidebar) var(--ease-sidebar);
 }
 .institution-header .header-logo {
   display: none;
@@ -1638,7 +1635,10 @@ button:disabled {
 }
 
 @media (min-width: 951px) {
-  /* Keep the rail geometry stable while only the shell width changes. */
+  /* Sidebar expands above a fixed content rail; the page never resizes. */
+  .site-shell:not(.sidebar-collapsed) > .sidebar {
+    box-shadow: 12px 0 28px #00000014;
+  }
   .sidebar {
     padding: 20px 12px;
     overflow-x: hidden;
@@ -1792,6 +1792,7 @@ button:disabled {
 @media (max-width: 950px) {
   :root {
     --sidebar-width: 0px;
+    --sidebar-rail-width: 0px;
   }
   .sidebar {
     display: none;

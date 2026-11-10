@@ -137,6 +137,12 @@ for (const width of [1024, 1366, 1920]) {
     const sidebar = page.getByRole('complementary', {
       name: 'Thanh điều hướng',
     });
+    await sidebar
+      .getByRole('button', { name: 'Mở rộng thanh điều hướng' })
+      .click();
+    await expect
+      .poll(async () => (await sidebar.boundingBox())!.width)
+      .toBe(width >= 1700 ? 260 : 244);
     const initialWidth = (await sidebar.boundingBox())!.width;
     const sidebarAvatar = sidebar.locator('.brand-logo');
     await expect(sidebarAvatar).toHaveAttribute(
@@ -153,10 +159,8 @@ for (const width of [1024, 1366, 1920]) {
       expect(avatar.x + avatar.width).toBeLessThanOrEqual(
         navigation.x + navigation.width,
       );
-      expect(header.x).toBeGreaterThanOrEqual(
-        navigation.x + navigation.width - 1,
-      );
-      expect(header.width + navigation.width).toBeCloseTo(width, 0);
+      expect(header.x).toBeCloseTo(104, 0);
+      expect(header.width + 104).toBeCloseTo(width, 0);
     }
     await expectIndependentColumns();
     expect((await sidebarAvatar.boundingBox())!.width).toBeGreaterThanOrEqual(
@@ -210,6 +214,16 @@ for (const width of [1024, 1366, 1920]) {
     await expect(
       sidebar.getByRole('button', { name: 'Thu gọn thanh điều hướng' }),
     ).toHaveAttribute('aria-expanded', 'true');
+    const fixedWidth = (await page.locator('.site-body').boundingBox())!.width;
+    await page.keyboard.press('Escape');
+    await expect(expand).toHaveAttribute('aria-expanded', 'false');
+    await expand.click();
+    await page.locator('main h1').click();
+    await expect(expand).toHaveAttribute('aria-expanded', 'false');
+    expect((await page.locator('.site-body').boundingBox())!.width).toBeCloseTo(
+      fixedWidth,
+      0,
+    );
   });
 }
 
@@ -523,12 +537,16 @@ test('explicit all categories survives search, reload, and browser history', asy
 });
 
 for (const width of [1024, 1366, 1920]) {
-  test(`sidebar animation keeps controls stable and shell aligned at ${width}px`, async ({
+  test(`sidebar overlay keeps content geometry fixed at ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
     await page.locator('.sidebar-toggle').waitFor();
+    await page.locator('.sidebar-toggle').click();
+    await expect
+      .poll(async () => (await page.locator('.sidebar').boundingBox())!.width)
+      .toBe(width >= 1700 ? 260 : 244);
     for (const opening of [false, true]) {
       const frames = await page.evaluate(async () => {
         const sidebar = document.querySelector('.sidebar')!;
@@ -543,14 +561,21 @@ for (const width of [1024, 1366, 1920]) {
           toggleY: toggle.getBoundingClientRect().y,
           supportX: supportIcon.getBoundingClientRect().x,
           supportY: supportIcon.getBoundingClientRect().y,
-          headerGap:
-            document
-              .querySelector('.institution-header')!
-              .getBoundingClientRect().x -
-            sidebar.getBoundingClientRect().right,
-          contentGap:
-            document.querySelector('.site-body')!.getBoundingClientRect().x -
-            sidebar.getBoundingClientRect().right,
+          headerX: document
+            .querySelector('.institution-header')!
+            .getBoundingClientRect().x,
+          contentX: document
+            .querySelector('.site-body')!
+            .getBoundingClientRect().x,
+          contentWidth: document
+            .querySelector('.site-body')!
+            .getBoundingClientRect().width,
+          bannerWidth: document
+            .querySelector('.center-profile-cover')!
+            .getBoundingClientRect().width,
+          bannerHeight: document
+            .querySelector('.center-profile-cover')!
+            .getBoundingClientRect().height,
           overflow: document.documentElement.scrollWidth > innerWidth,
         });
         const samples = [snapshot()];
@@ -580,8 +605,11 @@ for (const width of [1024, 1366, 1920]) {
         expect(frame.toggleY).toBeCloseTo(frames[0].toggleY, 0);
         expect(frame.supportX).toBeCloseTo(frames[0].supportX, 0);
         expect(frame.supportY).toBeCloseTo(frames[0].supportY, 0);
-        expect(Math.abs(frame.headerGap)).toBeLessThan(1);
-        expect(Math.abs(frame.contentGap)).toBeLessThan(1);
+        expect(frame.headerX).toBeCloseTo(104, 0);
+        expect(frame.contentX).toBeCloseTo(104, 0);
+        expect(frame.contentWidth).toBeCloseTo(frames[0].contentWidth, 0);
+        expect(frame.bannerWidth).toBeCloseTo(frames[0].bannerWidth, 0);
+        expect(frame.bannerHeight).toBeCloseTo(frames[0].bannerHeight, 0);
         expect(frame.overflow).toBe(false);
       }
       if (!opening) {

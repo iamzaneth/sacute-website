@@ -70,7 +70,19 @@ export function Sidebar({
   onToggle: () => void;
 }) {
   return (
-    <aside className="sidebar" aria-label="Thanh điều hướng">
+    <aside
+      className="sidebar"
+      aria-label="Thanh điều hướng"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && !collapsed) {
+          event.preventDefault();
+          onToggle();
+          event.currentTarget
+            .querySelector<HTMLButtonElement>('.sidebar-toggle')
+            ?.focus();
+        }
+      }}
+    >
       <button
         type="button"
         className="sidebar-toggle icon-button"

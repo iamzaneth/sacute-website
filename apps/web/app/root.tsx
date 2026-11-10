@@ -75,7 +75,7 @@ export default function App() {
   const { pathname } = useLocation();
   const navigation = useNavigation();
   usePublicFreshness();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   if (pathname === '/admin' || pathname.startsWith('/admin/'))
     return <Outlet />;
   return (
@@ -87,7 +87,12 @@ export default function App() {
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((value) => !value)}
       />
-      <div className="site-body">
+      <div
+        className="site-body"
+        onPointerDownCapture={() => {
+          if (!sidebarCollapsed) setSidebarCollapsed(true);
+        }}
+      >
         <main id="main-content" tabIndex={-1}>
           {navigation.state === 'loading' &&
           navigation.location &&
