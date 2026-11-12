@@ -1,4 +1,4 @@
--- PROPOSED base migration. Follow-up 002 is mandatory before enabling either write gate. Never run automatically. Review audit + docs/admin-cms.md first.
+-- PROPOSED base migration. Follow-up 002 is mandatory before enabling either write gate. Never run automatically. Review audit + docs/architecture.md first.
 -- No content import, table recreation, bucket deletion, service key, or RLS bypass.
 -- PostgreSQL transaction: any precondition failure rolls the entire migration back.
 BEGIN;

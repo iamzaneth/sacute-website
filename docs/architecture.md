@@ -1,43 +1,71 @@
-# Kiến trúc
+# Kiến trúc SACUTE
 
-Trước đây: nguồn bài viết cục bộ → script tạo TypeScript và sao chép ảnh → web prerender và API local. Hiện tại: Supabase PostgreSQL + Storage → `packages/shared/src/content.ts` → loader SSR React Router và repository NestJS. `packages/shared/src/index.ts` chỉ chứa kiểu miền, cấu hình tổ chức và điều hướng; không chứa bài viết.
+## Cấu trúc
 
-Web dùng `ssr: true` và `@vercel/react-router` preset tương thích React Router 7.18.5. Mọi URL bài viết được giải quyết ở runtime; không liệt kê slug khi build, không HTML/.data prerender. Vercel tạo Node server bundle và ánh xạ mọi route vào function. Không cần một API NestJS được triển khai riêng. Preview dùng server build thật qua adapter Express chính thức.
+```text
+apps/web/          React Router 7 + React 19: SSR, giao diện công khai và CMS
+apps/api/          NestJS 11: API chỉ đọc nội dung công khai
+packages/shared/   Kiểu dữ liệu, cấu hình tổ chức, mapper và repository Supabase
+supabase/          Migration CMS và SQL audit RLS
+scripts/           Công cụ nhập dữ liệu và xác minh nội dung cloud
+```
 
-## Lớp dữ liệu
+Web dùng SSR với preset `@vercel/react-router`. Loader và action chạy trên Node.js; preview dùng Express. Mọi slug bài viết được giải quyết ở runtime, không prerender bài khi build. API NestJS là ứng dụng độc lập, không phải tầng bắt buộc giữa web và Supabase. Thương hiệu và tài nguyên giao diện nằm trong `apps/web/public`; nội dung bài và ảnh nằm ở PostgreSQL/Storage.
 
-`createPublicSupabaseClient` kiểm tra URL và publishable key (hoặc legacy anon JWT), từ chối secret/service-role key. Phiên đăng nhập không được lưu. Web chỉ nhập lớp này trong module `.server.ts`; entry point shared dành cho component không xuất client hoặc thông tin môi trường. Các biến môi trường không có tiền tố `VITE_` chỉ dùng ở server.
+## Luồng đọc nội dung
 
-`SupabaseContentRepository.listPosts`, `list`, `getLatestPosts`, `getPostBySlug` lấy clock database qua RPC rồi dùng một truy vấn PostgREST với quan hệ media và chi tiết được nhúng; không N+1. Filter, đếm và pagination thực hiện trong PostgreSQL. Truy vấn luôn yêu cầu `status=published`, `deleted_at IS NULL` và `visible_from` rỗng hoặc không ở tương lai theo database clock. Mapper kiểm tra lại điều kiện công khai trước khi trả dữ liệu. Không sử dụng lifecycle_status để quyết định xuất bản. Thiếu hoặc sai chi tiết lifecycle báo dữ liệu không hợp lệ, không tự tạo trạng thái kết thúc.
+Web loader → `content-provider.server.ts` → `SupabaseContentRepository` trong `packages/shared/src/content.ts` → Supabase PostgreSQL/PostgREST. NestJS dùng cùng repository và mapper.
 
-Thứ tự ổn định: `published_on DESC NULLS LAST`, sau đó `published_at DESC NULLS LAST`, rồi `id ASC`. Khi xuất bản phải duy trì `published_on` là ngày công bố trong múi giờ Việt Nam, đồng nhất với timestamp nếu có. Bài chỉ có ngày trả nguyên `YYYY-MM-DD`; timestamp giữ nguyên instant và hiển thị Asia/Ho_Chi_Minh. Không tạo timestamp giả cho bài chỉ có ngày.
+Client công khai chỉ dùng publishable key hoặc legacy anon key, không có phiên đăng nhập. Biến Supabase được đọc trong module server, không đưa vào bundle trình duyệt. Mapper chỉ trả trường công khai, đổi snake_case sang camelCase và loại metadata nội bộ. Nội dung bài là văn bản được React escape; không thực thi HTML.
 
-Thông tin kết hợp kind `information` và `event`; category hiển thị tương ứng Thông báo và Hoạt động, giữ nguyên kind. Detail vẫn giữ category thật. Mặc định trang Thông tin chọn Thông báo; `category=` chọn Tất cả. Category sự kiện dựa trên event_name, với category làm dự phòng. Facet lấy riêng hai trường metadata theo batch tối đa 500, filter publication ở PostgreSQL, không tải body/media để dựng bộ lọc. Các nhóm mới xuất hiện từ cloud và vẫn hiển thị khi đổi trang hoặc lọc. Keyword tìm title/summary bằng ILIKE, không phân biệt hoa thường tiếng Việt nhưng vẫn phân biệt dấu; escape wildcard và cú pháp filter. Mỗi trang web có 12 bài, API tối đa 100. Homepage lấy 1 thông báo, 1 học bổng và 2 sự kiện gần nhất song song.
+Điều kiện công khai luôn là `status=published`, `deleted_at IS NULL` và `visible_from` chưa đặt hoặc đã đến hạn theo clock database. RLS độc lập áp dụng cùng điều kiện cho bài, bảng chi tiết và media. Mỗi request dùng chung một clock database; quan hệ media/chi tiết được nhúng để tránh N+1. Filter, đếm và phân trang thực hiện trong PostgreSQL.
 
-Mapper chuyển snake_case thành camelCase và chỉ xuất các trường công khai đã chọn, không serialize source_metadata hay user quản trị. URL tác giả/nguồn chỉ chấp nhận HTTP(S). Gallery theo sort_order và id; cover chọn riêng, không đảo album. Storage URL lấy bằng `getPublicUrl`, chỉ với bucket `post-media`. Record media sai bị bỏ qua và ghi cảnh báo có cấu trúc, không ghi đường dẫn riêng tư. Ảnh private dùng route kiểm tra parent/RLS mỗi request. Kích thước thiếu được bỏ qua; lightbox dùng kích thước viewport dự phòng. Nội dung được React escape và hiển thị dạng văn bản giữ xuống dòng; HTML không được thực thi. Không thêm xử lý Markdown/HTML; nội dung markdown hiện được hiển thị nguyên văn an toàn.
+Thứ tự bài: `published_on DESC NULLS LAST`, `published_at DESC NULLS LAST`, `id ASC`. Ngày không có giờ giữ nguyên `YYYY-MM-DD`; timestamp hiển thị theo `Asia/Ho_Chi_Minh`. Feed có 12 bài mỗi trang. Trang Thông tin kết hợp thông báo và hoạt động, mặc định chọn Thông báo; `category=` chọn tất cả. Tìm kiếm title/summary dùng ILIKE, không phân biệt hoa thường nhưng giữ dấu tiếng Việt.
 
-## Bảo mật và trạng thái
+Slug thiếu hoặc không công khai trả 404, query sai trả 400, lỗi đọc dữ liệu/timeout trả 503. Lỗi không được biến thành danh sách rỗng. Log không chứa token, cấu hình bí mật hay bản ghi riêng tư.
 
-RLS phải cho anon SELECT chỉ các bài đã xuất bản, đến hạn hiển thị; các bảng chi tiết/media phải có chính sách phụ thuộc bài cha. Bucket `post-media` công khai; `draft-media` riêng tư. Cần giới hạn ghi cho tài khoản quản trị đã xác thực. Lớp đọc công khai không dùng khóa đặc quyền. SQL audit chỉ đọc và migration đề xuất nằm trong `supabase/`; chưa áp dụng vào production. Không tự tạo lại bảng hoặc chạy migration production. Xác minh đọc thật đã thực hiện bằng publishable key; việc kiểm tra đầy đủ policy bằng quyền quản trị vẫn thuộc vận hành Supabase.
+## Loading và cache trình duyệt
 
-HTML SSR, API và ảnh riêng tư giữ `no-store`. Trang chủ/feed stream nội dung động sau phần tĩnh và dùng skeleton. Client có cache RAM giới hạn 16 kết quả/ước tính 4 MiB/5 phút, nhưng hiển thị snapshot công khai đã tải ngay và xác thực lại qua ETag ở nền; không có TTL cho phép trả dữ liệu cũ. Resource trả `private, no-cache, must-revalidate` và cấm CDN cache. Mỗi request dùng một clock database; không cache bản ghi ở server hoặc build. Truy vấn timeout 10 giây; không tự retry. Chuyển trang, thử lại hoặc focus tab sẽ đọc lại trạng thái công khai. Xem [loading/cache](loading-and-cache.md). Supabase Storage/CDN vẫn có cơ chế cache đối tượng riêng: khi thay ảnh nên dùng đường dẫn mới.
+Trang chủ/feed stream phần nội dung động qua Suspense/Await; phần tĩnh xuất hiện trước cùng skeleton. Bot chờ dữ liệu để giữ SEO và HTTP status. Detail chờ loader server để trả 404 và metadata chính xác. Với response đã bắt đầu stream cho người dùng, lỗi xuất hiện trong trang vì HTTP status đã được gửi.
 
-Tập rỗng chỉ là truy vấn thành công không có bài. Slug không có/không công khai trả HTTP 404. Mất kết nối/truy vấn/timeout trả 503; cấu hình thiếu trả lỗi 500 rõ ràng (API kiểm tra khi khởi động, web ở request đầu tiên). Query sai trả 400. UI có trạng thái tải, rỗng và lỗi khác nhau, bằng tiếng Việt. Logging chỉ ghi mã lỗi, không credentials hoặc bản ghi riêng tư.
+Client navigation dùng `GET /resources/content?view=home|information|scholarships|events|post`. Cache RAM được phân biệt theo view, trang, từ khóa, danh mục hoặc slug, giới hạn 16 kết quả, ước tính 4 MiB và thời gian giữ 5 phút. Dữ liệu được xác nhận trong 60 giây được dùng lại khi chuyển mục hoặc focus tab mà không gửi request; đọc/render cache không gia hạn mốc này.
 
-## Kiểm thử
+Sau 60 giây, chuyển mục hoặc focus tab kiểm tra ETag trong nền và giữ snapshot hiển thị trong lúc chờ. Request cùng khóa được gộp. Mỗi request thực sự đến server đọc lại database/RLS trước khi trả 200/304; xác nhận thành công bắt đầu khoảng 60 giây mới. Lỗi kiểm tra loại cache tương ứng và hiển thị thử lại. Thay đổi bài có thể chậm phản ánh đến hết khoảng freshness ở lần chuyển mục/focus tiếp theo; trang đang mở không tự polling.
 
-`tests/support/supabase.mjs` mô phỏng PostgREST qua HTTP với dữ liệu tổng hợp, bao gồm bài nháp/lưu trữ/hẹn giờ. API và SSR dùng client và mapper thật để kiểm tra filter, pagination, metadata, status code và cập nhật slug sau build. Browser suite kiểm tra responsive, WCAG, URL filters, lịch sử, sidebar/drawer, ảnh và lightbox. Kiểm tra bundle đảm bảo không chứa credentials, SDK Supabase hay bài viết cố định.
+Cache được xóa khi vào admin và khi tải lại/đóng tab. Không dùng localStorage, service worker, cache bản ghi dùng chung ở server hoặc CDN. HTML SSR/API/ảnh riêng tư dùng no-store; resource ETag dùng private/no-cache và CDN no-store. Snapshot danh sách có thể hiển thị trước nội dung detail/bộ lọc, nhưng không thay thế lần xác minh server cho khóa chưa tải.
 
-## Private Admin CMS
+## Admin CMS
 
-Các route `/admin/*` dùng layout riêng; public shell, navigation và repository đọc công khai giữ nguyên. Module `admin-auth.server.ts` dùng `@supabase/ssr`, HttpOnly cookies, `auth.getUser()` và membership trong `admin_profiles` cho từng protected loader/action. Action kiểm tra Origin, quyền admin và cổng `ADMIN_WRITES_ENABLED` (mặc định false). Không dùng user metadata hoặc service-role key.
+Route riêng: `/admin/login`, `/admin`, `/admin/posts`, `/admin/posts/new`, `/admin/posts/:id/edit`, `/admin/media`. Không có liên kết admin trong điều hướng công khai.
 
-`AdminContentRepository` tái sử dụng schema projection shared, chỉ chạy sau xác thực. RPC `admin_save_post` SECURITY INVOKER lưu post, type detail và gallery trong một transaction, kiểm tra snapshot tránh ghi đè sửa đồng thời và giữ slug cũ. RLS có restrictive guards để policy cũ không mở rộng quyền. File audit kiểm tra grants/policies/functions/triggers trước khi review migration. [Vận hành, giới hạn và quy trình bật ghi](admin-cms.md).
+`admin-auth.server.ts` tạo Supabase SSR client theo request. Mỗi protected loader/action xác minh `auth.getUser()` và `admin_profiles.role=admin`. Cookie HttpOnly, SameSite=Lax, Path=/ và Secure trên HTTPS; không lưu token trong localStorage, URL hoặc loader data. Mọi action kiểm tra Origin chính xác; đăng xuất là POST. Admin responses private/no-store và noindex. Người chưa đăng nhập được chuyển về login; người không có quyền nhận 403.
 
-## Security follow-up
+`AdminContentRepository` gọi RPC SECURITY INVOKER để lưu post, chi tiết và gallery trong một transaction. Revision/snapshot và row lock chống ghi đè chỉnh sửa đồng thời; slug cũ được giữ nguyên. Trạng thái suy ra gồm nháp, hẹn giờ, công khai, lưu trữ và thùng rác. Khôi phục về nháp; xóa vĩnh viễn đang tắt. Hẹn giờ dùng clock database, không cần cron.
 
-Migration 002 bổ sung database write gate mặc định false cho REST/RPC/Storage, staging ảnh riêng tư, deferred publication guards và khóa ảnh/post để tránh race khi ghi/xóa. `ADMIN_WRITES_ENABLED` chỉ điều khiển SSR; muốn dừng mọi client ghi phải đóng cả gate database. Ảnh mới qua decoder/re-encoder Sharp rồi vào `draft-media`; `/admin/media/file` xác thực từng request và không phát hành public/signed URL. Chỉ `post-media` dùng URL Storage công khai. Migration 003 cho phép ảnh private qua guarded byte route khi parent đã đến giờ xuất bản và chưa xóa; không copy/promote ảnh. [Review và giới hạn](security-review.md), [quy trình phát hành](media-publication.md).
+Ảnh mới được Sharp decode/re-encode để loại metadata, giới hạn PNG/JPEG/WebP tĩnh, tối đa 3 MiB và 16 triệu điểm ảnh. Ảnh lưu vào bucket riêng tư `draft-media`. Preview admin qua `/admin/media/file`; ảnh bài đã công khai qua `/media/posts/:id/:mediaId` (web) hoặc `/api/v1/media/posts/:id/:mediaId` (API), xác minh bài cha mỗi request và trả byte no-store/nosniff. Không phát hành signed/public URL cho ảnh nháp. Chỉ xóa ảnh riêng tư chưa sử dụng thuộc namespace admin hiện tại. URL ảnh cũ trong bucket public `post-media` vẫn công khai kể cả khi ẩn bài.
 
-## Post lifecycle
+## Cấu hình CMS trên Supabase
 
-[Lifecycle contract and migration 003](post-lifecycle.md) centralize five derived states: draft/scheduled/published/archived/trashed. `visible_from` remains the scheduling instant, with nullable `deleted_at/deleted_by` for Trash. All public queries use the database time RPC and reject deleted rows; RLS independently applies the same visibility. `admin_transition_post` uses row locks and UUID revisions, and direct child edits advance the parent revision. Save and transitions preserve historical dates unless explicitly corrected. No cron, stale server record cache or Storage deletion is involved. Browser cache always revalidates visibility before reuse. Permanent deletion is disabled pending a verified cleanup design.
+Ứng dụng yêu cầu schema nội dung hiện có; migration CMS không phải script khởi tạo database mới. SQL audit nằm ở `supabase/audits/admin_rls_audit.sql`. Review schema, policy, grants, RPC và bucket trước khi áp dụng các migration chưa chạy, theo thứ tự:
+
+1. `202611100001_private_admin_cms.sql`: quyền CMS, RLS và lưu bài.
+2. `202611100002_admin_security_hardening.sql`: database write gate và bảo vệ Storage.
+3. `202611100003_post_lifecycle.sql`: hẹn giờ, revision, thùng rác và ảnh riêng tư có điều kiện.
+
+Các file nằm trong `supabase/migrations/`, chỉ áp dụng thủ công sau review và xác minh trên staging; không chạy trong build/CI. Giữ gate đóng trong quá trình cấu hình. Không tắt RLS để khắc phục lỗi quyền; legacy RPC có đặc quyền và policy cũ cần được audit riêng.
+
+Tạo user email/password trong Supabase Auth, sau đó cấp `admin_profiles(user_id, role)` với UUID của user và role `admin` bằng quyền chủ project. Ứng dụng không có đăng ký, khôi phục mật khẩu hay MFA challenge. Chỉ bật ghi sau khi cả ba migration và quyền đọc/ghi/media đã được xác minh: đặt `public.admin_cms_settings.writes_enabled=true` ở hàng `singleton`, đồng thời `ADMIN_WRITES_ENABLED=true` ở web. Muốn dừng mọi client thường ghi, đóng cả database gate và env gate. `ADMIN_ORIGIN` là origin chính xác của web.
+
+## Thông báo dùng chung
+
+`ToastProvider` trong `apps/web/app/components/toast/toast.tsx` nằm ở root layout, giữ toast qua client navigation và hỗ trợ error boundary. Hook `useToast()` cung cấp `success`, `error`, `info`, `warning`, `dismiss`; ví dụ `toast.success('Đã lưu.');`. Có thể truyền `{ id, duration }`; mặc định 3 giây. ID sự kiện giúp tránh phát lại, lịch sử giữ tối đa 100 ID. `useToastFeedback` nối kết quả action hoặc khóa sự kiện với thông báo; lỗi trường nhập vẫn ở cạnh trường.
+
+Tối đa 3 toast kể cả toast đang thoát; khi đầy, toast cũ trượt ra phải trước khi nhận toast mới. Hàng đợi chỉ giữ 3 thông báo mới nhất. Màu lần lượt xanh lá/đỏ/xanh dương/vàng. Animation vào/ra/dồn vị trí dùng transform và opacity, không bounce hay cập nhật React mỗi frame; chế độ reduced-motion tắt chuyển động. Hover/focus tạm dừng bộ đếm, có nút đóng và live region cho trình đọc màn hình. Không lưu thông báo vào browser storage.
+
+## API và triển khai
+
+API local dưới `/api/v1`: `GET /health`, `/information`, `/scholarships`, `/events`, `/posts/:slug` và route byte ảnh nêu trên. Danh sách nhận `page`, `limit` (tối đa 100), `q`, `category`; response `{ data, meta }`. CMS chỉ dùng React Router actions, không có admin CRUD endpoint trong NestJS.
+
+Cấu hình chạy ở các file `.env.example` và hướng dẫn trong [README](../README.md). Web production chỉ cần Supabase runtime và React Router Node SSR; NestJS triển khai riêng nếu cần API. Không cấu hình SPA fallback hoặc cache CDN cho HTML, `.data`, content resource và route admin/ảnh riêng tư. SEO dùng HTML SSR, canonical theo `VITE_SITE_ORIGIN`, indexing theo `VITE_ALLOW_INDEXING`.
+
+CI cài dependency theo lockfile và chạy build, lint, typecheck, format check. Các script trong `scripts/` là công cụ vận hành, không tự nhập lại dữ liệu khi dev/build/deploy.

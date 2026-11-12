@@ -11,8 +11,6 @@ export default tseslint.config(
       '**/.react-router/**',
       '**/node_modules/**',
       '.pnpm-store/**',
-      'playwright-report/**',
-      'test-results/**',
     ],
   },
   js.configs.recommended,

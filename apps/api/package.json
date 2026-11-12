@@ -6,8 +6,7 @@
     "dev": "node --watch -r ts-node/register src/main.ts",
     "build": "tsc",
     "start": "node dist/main.js",
-    "typecheck": "tsc --noEmit",
-    "test": "pnpm build && node --test test/*.test.cjs"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",
