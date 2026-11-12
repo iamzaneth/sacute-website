@@ -1,4 +1,5 @@
 import { lifecycleLabels, formatSchedule } from '@sacute/shared';
+import { useToastFeedback } from '../components/toast/toast';
 import { LifecycleControls } from '../features/admin/lifecycle-controls';
 import {
   Form,
@@ -42,6 +43,19 @@ export default function AdminPosts() {
   const navigation = useNavigation();
   const result = useActionData<typeof action>();
   const [params] = useSearchParams();
+  useToastFeedback(
+    result,
+    result?.errors
+      ? 'Chưa cập nhật trạng thái. Kiểm tra thông tin và thử lại.'
+      : undefined,
+    'error',
+  );
+  useToastFeedback(
+    params.get('saved'),
+    params.has('saved') ? 'Đã cập nhật trạng thái bài viết.' : undefined,
+    'success',
+    `posts:${params.get('saved')}`,
+  );
   const pageURL = (page: number) =>
     `/admin/posts?${new URLSearchParams({ q: state.q, kind: state.kind, status: state.status, page: String(page) })}`;
   return (
@@ -59,11 +73,6 @@ export default function AdminPosts() {
       {result?.errors && (
         <p role="alert" className="admin-errors">
           {Object.values(result.errors).join(' ')}
-        </p>
-      )}
-      {params.has('saved') && navigation.state === 'idle' && (
-        <p role="status" className="admin-success">
-          Đã cập nhật trạng thái bài viết.
         </p>
       )}
       <Form method="get" className="admin-filters">

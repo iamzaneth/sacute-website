@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast, useToastFeedback } from '../../components/toast/toast';
 import { Form, Link, useNavigation, useSearchParams } from 'react-router';
 import {
   deriveLifecycle,
@@ -53,6 +54,22 @@ export function PostEditor({
   const scholarship = post && relationOne(post.scholarship_details);
   const event = post && relationOne(post.event_details);
   const busy = navigation.state !== 'idle';
+  const toast = useToast();
+  useToastFeedback(mediaError, mediaError || undefined, 'warning');
+  const errorMessage = Object.values(errors).join(' ');
+  useToastFeedback(
+    errors,
+    errorMessage
+      ? 'Chưa lưu bài viết. Kiểm tra các trường được đánh dấu.'
+      : undefined,
+    'error',
+  );
+  useToastFeedback(
+    params.get('saved'),
+    params.has('saved') ? 'Đã lưu bài viết thành công.' : undefined,
+    'success',
+    `post:${params.get('saved')}`,
+  );
   const field = (
     name: string,
     label: string,
@@ -114,11 +131,6 @@ export function PostEditor({
         <h1>{post ? 'Biên tập bài viết' : 'Tạo bài viết'}</h1>
         <Link to="/admin/posts">Danh sách bài viết</Link>
       </div>
-      {params.has('saved') && !dirty && !busy && (
-        <p className="admin-success" role="status">
-          Đã lưu bài viết thành công.
-        </p>
-      )}
       {Object.keys(errors).length > 0 && (
         <div className="admin-errors" role="alert">
           <strong>Chưa lưu bài viết.</strong>
@@ -511,6 +523,9 @@ export function PostEditor({
                           next[0] = { ...next[0], is_cover: true };
                         setMedia(next);
                         setDirty(true);
+                        toast.info(
+                          'Đã gỡ ảnh khỏi bài viết. Lưu thay đổi để áp dụng.',
+                        );
                       }}
                     >
                       Gỡ ảnh

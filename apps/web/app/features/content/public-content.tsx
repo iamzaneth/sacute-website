@@ -6,6 +6,7 @@ import {
   peekPublicCache,
 } from '../../services/public-content-cache';
 import { ContentSkeleton } from './content-skeleton';
+import { useToastFeedback } from '../../components/toast/toast';
 
 function VerifiedContent<T>({
   result,
@@ -27,6 +28,7 @@ export function ContentLoadError({
   message?: string;
 }) {
   const revalidator = useRevalidator();
+  useToastFeedback(message, message, 'error');
   return (
     <div className="content-load-error" role="alert">
       <p>{message}</p>

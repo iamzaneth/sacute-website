@@ -9,8 +9,10 @@ import {
   useNavigation,
   Link,
   useLocation,
+  useMatches,
 } from 'react-router';
-import { type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { ToastProvider, useToast } from './components/toast/toast';
 import { Sidebar, InstitutionalHeader, Footer } from './components/layout';
 import { siteConfig } from './lib/site-config';
 import {
@@ -64,7 +66,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <a className="skip-link" href="#main-content">
           Chuyển đến nội dung chính
         </a>
-        {children}
+        <ToastProvider>{children}</ToastProvider>
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -75,6 +77,7 @@ export default function App() {
   const { pathname } = useLocation();
   const navigation = useNavigation();
   usePublicFreshness();
+  useLoginNotification();
   if (pathname === '/admin' || pathname.startsWith('/admin/'))
     return <Outlet />;
   return (
@@ -101,6 +104,35 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+function useLoginNotification() {
+  const navigation = useNavigation();
+  const location = useLocation();
+  const matches = useMatches();
+  const toast = useToast();
+  const loginPending = useRef(false);
+  useEffect(() => {
+    if (
+      navigation.formMethod?.toLowerCase() === 'post' &&
+      navigation.formAction &&
+      new URL(navigation.formAction, window.location.origin).pathname ===
+        '/admin/login'
+    ) {
+      loginPending.current = true;
+    }
+    if (navigation.state !== 'idle' || !loginPending.current) return;
+    loginPending.current = false;
+    if (
+      matches.some(
+        (match) =>
+          match.id === 'routes/admin-layout' &&
+          !!(match.data as { email?: string } | undefined)?.email,
+      )
+    ) {
+      toast.success('Đăng nhập thành công.', { id: `login:${location.key}` });
+    }
+  }, [navigation, location.key, matches, toast]);
 }
 export function ErrorBoundary() {
   const error = useRouteError();

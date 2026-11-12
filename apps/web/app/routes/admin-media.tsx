@@ -19,6 +19,7 @@ import {
   readAdminForm,
 } from '../services/admin-auth.server';
 import { ValidationError, validStoragePath } from '../features/admin/model';
+import { useToastFeedback } from '../components/toast/toast';
 import type { Route } from './+types/admin-media';
 export const headers = adminHeaders;
 export async function loader({
@@ -119,6 +120,11 @@ export default function AdminMedia() {
   const result = useActionData<typeof action>();
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
+  useToastFeedback(
+    result,
+    result?.error || result?.success,
+    result?.error ? 'error' : 'success',
+  );
   const pageURL = (prefix: string, page = 1) =>
     `/admin/media?${new URLSearchParams({ prefix, page: String(page), bucket: state.bucket })}`;
   return (
@@ -133,15 +139,9 @@ export default function AdminMedia() {
         công khai cũ vẫn truy cập được qua URL kể cả khi ẩn bài. Hỗ trợ PNG,
         JPEG, WebP tối đa 3 MiB và 16 triệu điểm ảnh.
       </p>
-      {result?.error && (
-        <p className="admin-errors" role="alert">
-          {result.error}
-        </p>
-      )}
-      {result?.success && (
-        <p className="admin-success" role="status">
-          {result.success}{' '}
-          {result.path && <Link to={pageURL(`admin`)}>Mở thư mục ảnh CMS</Link>}
+      {result?.path && (
+        <p>
+          <Link to={pageURL('admin')}>Mở thư mục ảnh CMS</Link>
         </p>
       )}
       <Form

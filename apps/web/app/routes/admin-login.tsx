@@ -5,7 +5,13 @@ import {
   useNavigation,
   data,
   redirect,
+  Link,
+  useLocation,
 } from 'react-router';
+import { useState } from 'react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, LoaderCircle } from 'lucide-react';
+import { BrandLogo } from '../components/brand';
+import { useToastFeedback } from '../components/toast/toast';
 import {
   adminHeaders,
   assertSameOrigin,
@@ -77,24 +83,35 @@ export default function AdminLogin() {
   const state = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const navigation = useNavigation();
+  const location = useLocation();
+  const [showPassword, setShowPassword] = useState(false);
+  const busy = navigation.state !== 'idle';
+  useToastFeedback(result, result?.error, 'error');
+  useToastFeedback(
+    location.key,
+    state.logout
+      ? 'Đã đăng xuất an toàn.'
+      : state.expired
+        ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+        : undefined,
+    state.logout ? 'success' : 'warning',
+    `auth:${location.key}`,
+  );
   return (
     <main id="main-content" className="admin-login" tabIndex={-1}>
       <div className="admin-card">
-        <p className="eyebrow">SACUTE · Quản trị nội dung</p>
+        <Link
+          className="admin-login-brand"
+          to="/"
+          aria-label="SACUTE Quản trị nội dung — Trang chủ"
+        >
+          <BrandLogo />
+          <span>
+            SACUTE <small>QUẢN TRỊ NỘI DUNG</small>
+          </span>
+        </Link>
         <h1>Đăng nhập quản trị</h1>
-        <p>Dành cho biên tập viên được cấp quyền.</p>
-        {state.expired && (
-          <p role="status">
-            Phiên đăng nhập đã hết hạn hoặc chưa đăng nhập. Vui lòng đăng nhập
-            lại.
-          </p>
-        )}
-        {state.logout && <p role="status">Đã đăng xuất an toàn.</p>}
-        {result?.error && (
-          <p className="admin-field-error" role="alert">
-            {result.error}
-          </p>
-        )}
+        <p className="admin-login-description">Chào mừng bạn trở lại.</p>
         <Form method="post" className="admin-form">
           <label>
             Email
@@ -103,26 +120,55 @@ export default function AdminLogin() {
               type="email"
               autoComplete="username"
               maxLength={254}
+              placeholder="Email của bạn"
+              spellCheck={false}
+              autoCapitalize="none"
               required
             />
           </label>
-          <label>
-            Mật khẩu
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              maxLength={1024}
-              required
-            />
-          </label>
-          <button
-            className="button button-primary"
-            disabled={navigation.state !== 'idle'}
-          >
-            {navigation.state !== 'idle' ? 'Đang đăng nhập…' : 'Đăng nhập'}
+          <div className="admin-login-password">
+            <label htmlFor="admin-password">Mật khẩu</label>
+            <div className="admin-password-input">
+              <input
+                id="admin-password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                maxLength={1024}
+                placeholder="Nhập mật khẩu"
+                required
+              />
+              <button
+                type="button"
+                className="admin-password-toggle"
+                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((shown) => !shown)}
+              >
+                {showPassword ? (
+                  <EyeOff size={19} aria-hidden="true" />
+                ) : (
+                  <Eye size={19} aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          </div>
+          <button className="button button-primary" disabled={busy}>
+            {busy ? 'Đang đăng nhập…' : 'Đăng nhập'}
+            {busy ? (
+              <LoaderCircle
+                className="admin-login-spinner"
+                size={18}
+                aria-hidden="true"
+              />
+            ) : (
+              <ArrowRight size={18} aria-hidden="true" />
+            )}
           </button>
         </Form>
+        <Link className="admin-login-back" to="/">
+          <ArrowLeft size={15} aria-hidden="true" /> Về trang chủ
+        </Link>
       </div>
     </main>
   );

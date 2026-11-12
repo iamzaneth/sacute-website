@@ -18,6 +18,7 @@ import {
 import type { Route } from './+types/admin-layout';
 import '../styles/admin.css';
 import { ContentSkeleton } from '../features/content/content-skeleton';
+import { useToastFeedback } from '../components/toast/toast';
 export const headers = adminHeaders;
 export const meta = () => [
   { title: 'Quản trị | SACUTE' },
@@ -99,6 +100,13 @@ export default function AdminLayout() {
 export function ErrorBoundary() {
   const error = useRouteError();
   const status = isRouteErrorResponse(error) ? error.status : 503;
+  useToastFeedback(
+    error,
+    isRouteErrorResponse(error) && typeof error.data === 'string'
+      ? error.data
+      : 'Không thể hoàn tất yêu cầu. Vui lòng thử lại.',
+    'error',
+  );
   return (
     <main id="main-content" className="admin-main admin-error">
       <p className="eyebrow">SACUTE · Quản trị</p>
