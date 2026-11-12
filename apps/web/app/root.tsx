@@ -15,10 +15,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { ToastProvider, useToast } from './components/toast/toast';
 import { Sidebar, InstitutionalHeader, Footer } from './components/layout';
 import { siteConfig } from './lib/site-config';
-import {
-  NavigationSkeleton,
-  usePublicFreshness,
-} from './features/content/navigation-feedback';
+import { usePublicFreshness } from './features/content/navigation-feedback';
 import { centerProfile } from './components/brand';
 import './styles/app.css';
 import './styles/recruitment.css';
@@ -67,7 +64,13 @@ export function Layout({ children }: { children: ReactNode }) {
           Chuyển đến nội dung chính
         </a>
         <ToastProvider>{children}</ToastProvider>
-        <ScrollRestoration />
+        <ScrollRestoration
+          getKey={(location) =>
+            /^\/(information|scholarships|events)$/.test(location.pathname)
+              ? location.pathname + location.search
+              : location.key
+          }
+        />
         <Scripts />
       </body>
     </html>
@@ -82,23 +85,20 @@ export default function App() {
     return <Outlet />;
   return (
     <div className="site-shell">
+      {navigation.state === 'loading' && (
+        <div className="navigation-progress" role="status">
+          <span className="sr-only">Đang chuyển trang…</span>
+        </div>
+      )}
       <InstitutionalHeader />
       <Sidebar />
       <div className="site-body">
-        <main id="main-content" tabIndex={-1}>
-          {navigation.state === 'loading' &&
-          navigation.location &&
-          (/^\/(information|scholarships|events)(\?|$)/.test(
-            navigation.location.pathname,
-          ) ||
-            navigation.location.pathname === '/' ||
-            navigation.location.pathname.startsWith('/posts/')) ? (
-            <NavigationSkeleton
-              url={navigation.location.pathname + navigation.location.search}
-            />
-          ) : (
-            <Outlet />
-          )}
+        <main
+          id="main-content"
+          tabIndex={-1}
+          aria-busy={navigation.state === 'loading'}
+        >
+          <Outlet />
         </main>
         <Footer />
       </div>

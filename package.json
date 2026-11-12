@@ -12,6 +12,7 @@
     "build": "pnpm --filter @sacute/shared build && pnpm --filter @sacute/api build && pnpm --filter @sacute/web build",
     "typecheck": "pnpm --filter @sacute/shared build && pnpm -r typecheck",
     "lint": "eslint .",
+    "test:cache": "node tests/public-content-cache.test.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "pnpm --filter @sacute/web preview"

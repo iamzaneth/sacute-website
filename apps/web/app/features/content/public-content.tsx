@@ -1,5 +1,5 @@
-import { Suspense, useEffect, type ReactNode } from 'react';
-import { Await, useRevalidator } from 'react-router';
+import { Suspense, use, useEffect, useState, type ReactNode } from 'react';
+import { useRevalidator } from 'react-router';
 import type { PublicResult, PublicData } from './public-data';
 import {
   primePublicCache,
@@ -12,14 +12,16 @@ function VerifiedContent<T>({
   result,
   cacheKey,
   children,
+  verified = true,
 }: {
   result: Extract<PublicResult<T>, { ok: true }>;
   cacheKey: string;
   children: (value: T) => ReactNode;
+  verified?: boolean;
 }) {
   useEffect(() => {
-    primePublicCache(cacheKey, result.value, result.etag);
-  }, [cacheKey, result]);
+    if (verified) primePublicCache(cacheKey, result.value, result.etag);
+  }, [cacheKey, result, verified]);
   return children(result.value);
 }
 export function ContentLoadError({
@@ -56,43 +58,70 @@ export function PublicContent<T>({
   fallback?: ReactNode;
   errorFallback?: ReactNode;
 }) {
-  const cached = peekPublicCache<T>(cacheKey);
-  const pending =
-    cached === undefined ? (
-      fallback
-    ) : (
-      <>
-        {children(cached)}
-        <span className="sr-only" role="status">
-          Đang kiểm tra cập nhật…
-        </span>
-      </>
-    );
-  if (content === null) return pending;
-  if ('ok' in content)
-    return content.ok ? (
-      <VerifiedContent result={content} cacheKey={cacheKey}>
-        {children}
-      </VerifiedContent>
-    ) : (
-      (errorFallback ?? <ContentLoadError message={content.message} />)
-    );
   return (
-    <Suspense key={cacheKey} fallback={pending}>
-      <Await
-        resolve={content}
-        errorElement={errorFallback ?? <ContentLoadError />}
+    <Suspense fallback={fallback}>
+      <ContentValue
+        content={content}
+        cacheKey={cacheKey}
+        fallback={fallback}
+        errorFallback={errorFallback}
       >
-        {(result: PublicResult<T>) =>
-          result.ok ? (
-            <VerifiedContent result={result} cacheKey={cacheKey}>
-              {children}
-            </VerifiedContent>
-          ) : (
-            (errorFallback ?? <ContentLoadError message={result.message} />)
-          )
-        }
-      </Await>
+        {children}
+      </ContentValue>
     </Suspense>
+  );
+}
+
+function ContentValue<T>({
+  content,
+  cacheKey,
+  children,
+  fallback,
+  errorFallback,
+}: {
+  content: PublicData<T> | null;
+  cacheKey: string;
+  children: (value: T) => ReactNode;
+  fallback: ReactNode;
+  errorFallback?: ReactNode;
+}) {
+  const [settled, setSettled] = useState<{
+    source: PublicData<T>;
+    result: PublicResult<T>;
+  } | null>(null);
+  useEffect(() => {
+    if (!content || 'ok' in content) return;
+    let active = true;
+    void content.then((result) => {
+      if (active) setSettled({ source: content, result });
+    });
+    return () => {
+      active = false;
+    };
+  }, [content]);
+
+  const cached = peekPublicCache<T>(cacheKey);
+  let result =
+    content && 'ok' in content
+      ? content
+      : settled?.source === content
+        ? settled.result
+        : undefined;
+  // A cached value and its validated replacement share the same React tree.
+  // Revalidation must not remount an expanded caption or an open gallery.
+  let verified = result !== undefined;
+  if (!result && cached !== undefined)
+    result = { ok: true, value: cached, etag: '' };
+  if (!result && content && !('ok' in content)) {
+    result = use(content);
+    verified = true;
+  }
+  if (!result) return fallback;
+  if (!result.ok)
+    return errorFallback ?? <ContentLoadError message={result.message} />;
+  return (
+    <VerifiedContent result={result} cacheKey={cacheKey} verified={verified}>
+      {children}
+    </VerifiedContent>
   );
 }

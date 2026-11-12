@@ -26,13 +26,17 @@ Slug thiếu hoặc không công khai trả 404, query sai trả 400, lỗi đ�
 
 ## Loading và cache trình duyệt
 
-Trang chủ/feed stream phần nội dung động qua Suspense/Await; phần tĩnh xuất hiện trước cùng skeleton. Bot chờ dữ liệu để giữ SEO và HTTP status. Detail chờ loader server để trả 404 và metadata chính xác. Với response đã bắt đầu stream cho người dùng, lỗi xuất hiện trong trang vì HTTP status đã được gửi.
+Trang chủ/feed stream phần nội dung động qua Suspense và React `use`; phần tĩnh xuất hiện trước cùng skeleton. Bot chờ dữ liệu để giữ SEO và HTTP status. Detail chờ loader server để trả 404 và metadata chính xác, sau đó đưa kết quả SSR/ETag vào cache khi hydrate. Với response đã bắt đầu stream cho người dùng, lỗi xuất hiện trong trang vì HTTP status đã được gửi.
 
 Client navigation dùng `GET /resources/content?view=home|information|scholarships|events|post`. Cache RAM được phân biệt theo view, trang, từ khóa, danh mục hoặc slug, giới hạn 16 kết quả, ước tính 4 MiB và thời gian giữ 5 phút. Dữ liệu được xác nhận trong 60 giây được dùng lại khi chuyển mục hoặc focus tab mà không gửi request; đọc/render cache không gia hạn mốc này.
 
 Sau 60 giây, chuyển mục hoặc focus tab kiểm tra ETag trong nền và giữ snapshot hiển thị trong lúc chờ. Request cùng khóa được gộp. Mỗi request thực sự đến server đọc lại database/RLS trước khi trả 200/304; xác nhận thành công bắt đầu khoảng 60 giây mới. Lỗi kiểm tra loại cache tương ứng và hiển thị thử lại. Thay đổi bài có thể chậm phản ánh đến hết khoảng freshness ở lần chuyển mục/focus tiếp theo; trang đang mở không tự polling.
 
-Cache được xóa khi vào admin và khi tải lại/đóng tab. Không dùng localStorage, service worker, cache bản ghi dùng chung ở server hoặc CDN. HTML SSR/API/ảnh riêng tư dùng no-store; resource ETag dùng private/no-cache và CDN no-store. Snapshot danh sách có thể hiển thị trước nội dung detail/bộ lọc, nhưng không thay thế lần xác minh server cho khóa chưa tải.
+Chuyển trang giữ Outlet hiện tại trong lúc router xử lý thay vì dựng một bản trang đích tạm; chỉ báo nhỏ xuất hiện sau 150 ms nếu còn chờ. Khi có snapshot, trang đích hiển thị ngay và cập nhật trên cùng cây React để giữ trạng thái caption/gallery. Feed khôi phục vị trí cuộn theo đường dẫn và bộ lọc, kể cả khi quay lại qua liên kết.
+
+Detail dùng lại full article từ danh sách với đúng mốc xác minh của danh sách, không gia hạn freshness khi mở bài và không dùng ETag của danh sách cho detail. Sau freshness, xác minh detail ở nền; 404 loại cả snapshot detail và các danh sách có chứa bài để tránh hiện lại bài đã bị gỡ. Bộ nhớ vẫn giới hạn 16 kết quả/4 MiB. Hover/focus/touch liên kết bài và điều hướng chủ động làm ấm cùng cache/request đang chạy; bỏ qua data prefetch khi bật tiết kiệm dữ liệu hoặc mạng 2G. Liên kết bài dùng thêm `prefetch="intent"` để tải trước module route; các route có clientLoader không phát sinh server data prefetch của React Router.
+
+Cache được xóa khi vào admin và khi tải lại/đóng tab. Không dùng localStorage, service worker, cache bản ghi dùng chung ở server hoặc CDN. HTML SSR/API/ảnh riêng tư dùng no-store; resource ETag dùng private/no-cache và CDN no-store. Chạy `pnpm test:cache` để kiểm tra tuổi cache, dùng lại dữ liệu, request trùng và invalidation. Sau `pnpm build`, kiểm tra trình duyệt bằng `node tests/content-navigation.mjs /đường/dẫn/playwright/index.mjs`; script dùng Supabase giả lập trên localhost, không đọc/ghi database thật.
 
 ## Admin CMS
 

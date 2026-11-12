@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { navigation, organization } from '@sacute/shared';
 import { Brand, BrandLogo } from './brand';
+import { prefetchPublicContent } from '../services/public-content-cache';
+import type { PublicView } from '../features/content/public-data';
 
 const icons = [Home, BookOpen, GraduationCap, CalendarDays, Mail, Users];
 
@@ -25,6 +27,17 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
     <nav aria-label="Điều hướng chính" className="nav-items">
       {navigation.map((item, index) => {
         const Icon = icons[index];
+        const view =
+          item.path === '/'
+            ? 'home'
+            : ['information', 'scholarships', 'events'].includes(
+                  item.path.slice(1),
+                )
+              ? (item.path.slice(1) as PublicView)
+              : undefined;
+        const prefetch = () => {
+          if (view) prefetchPublicContent(view, item.path);
+        };
         return (
           <NavLink
             key={item.path}
@@ -36,6 +49,9 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
                 : 'none'
             }
             end={item.path === '/'}
+            onPointerEnter={prefetch}
+            onFocus={prefetch}
+            onTouchStart={prefetch}
             onClick={onNavigate}
             aria-label={item.label}
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}

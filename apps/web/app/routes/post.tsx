@@ -1,31 +1,44 @@
 import { Link, useLocation, isRouteErrorResponse } from 'react-router';
+import { useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import {
-  readContent,
-  contentHeaders,
-} from '../services/content-provider.server';
+import { contentHeaders } from '../services/content-provider.server';
 export const headers = contentHeaders;
-import { fetchPublicContent } from '../services/public-content-cache';
+import { loadPublicResult } from '../services/public-content.server';
+import {
+  fetchPublicContent,
+  peekPublicCache,
+} from '../services/public-content-cache';
+import {
+  publicResource,
+  type PublicPayloads,
+} from '../features/content/public-data';
+import { PublicContent } from '../features/content/public-content';
 import { ArticleCard } from '../features/content/article-card';
 import { pageMeta } from '../lib/seo';
 import type { Route } from './+types/post';
 
-export async function loader({ params }: Route.LoaderArgs) {
-  return readContent(async (repository) => {
-    const item = await repository.getPostBySlug(params.slug);
-    if (!item)
-      throw new Response('Không tìm thấy bài viết', {
-        status: 404,
-        headers: { 'Cache-Control': 'no-store' },
-      });
-    return { item };
-  });
+export async function loader({ request }: Route.LoaderArgs) {
+  const result = await loadPublicResult(
+    'post',
+    new Request(new URL(publicResource('post', request.url), request.url)),
+  );
+  if (!result.ok)
+    throw new Response(result.message, {
+      status: result.status,
+      headers: { 'Cache-Control': 'no-store' },
+    });
+  return { ...result.value, etag: result.etag, validation: null };
 }
 
 export async function clientLoader({ request }: Route.ClientLoaderArgs) {
-  const result = await fetchPublicContent('post', request.url);
+  const cached = peekPublicCache<PublicPayloads['post']>(
+    publicResource('post', request.url),
+  );
+  const validation = fetchPublicContent('post', request.url);
+  if (cached) return { ...cached, etag: '', validation };
+  const result = await validation;
   if (!result.ok) throw new Response(result.message, { status: result.status });
-  return result.value;
+  return { ...result.value, etag: result.etag, validation: null };
 }
 
 export const meta: Route.MetaFunction = ({ data, error }) =>
@@ -52,6 +65,15 @@ export const meta: Route.MetaFunction = ({ data, error }) =>
 
 export default function Post({ loaderData }: Route.ComponentProps) {
   const location = useLocation();
+  const content = useMemo(
+    () =>
+      loaderData.validation ?? {
+        ok: true as const,
+        value: { item: loaderData.item },
+        etag: loaderData.etag,
+      },
+    [loaderData.validation, loaderData.item, loaderData.etag],
+  );
   const requestedReturn = location.state?.returnTo;
   const returnTo =
     typeof requestedReturn === 'string' &&
@@ -68,7 +90,12 @@ export default function Post({ loaderData }: Route.ComponentProps) {
         <ArrowLeft size={17} aria-hidden="true" />
         Quay lại danh sách
       </Link>
-      <ArticleCard item={loaderData.item} detail />
+      <PublicContent
+        cacheKey={publicResource('post', location.pathname)}
+        content={content}
+      >
+        {({ item }) => <ArticleCard key={item.slug} item={item} detail />}
+      </PublicContent>
     </div>
   );
 }

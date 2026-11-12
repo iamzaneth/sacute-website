@@ -27,6 +27,10 @@ export function clearPublicCache() {
 }
 export function primePublicCache(key: string, value: unknown, etag: string) {
   if (typeof window === 'undefined') return;
+  storeEntry(key, value, etag, Date.now());
+}
+
+function storeEntry(key: string, value: unknown, etag: string, stored: number) {
   const same = entries.get(key);
   if (same && same.value === value && same.etag === etag) {
     entries.delete(key);
@@ -37,10 +41,48 @@ export function primePublicCache(key: string, value: unknown, etag: string) {
   const size = JSON.stringify(value).length * 2;
   remove(key);
   if (size > maxBytes) return;
-  entries.set(key, { value, etag, size, stored: Date.now() });
+  entries.set(key, { value, etag, size, stored });
   bytes += size;
   while (entries.size > maxEntries || bytes > maxBytes)
     remove(entries.keys().next().value!);
+}
+
+function postSnapshot(slug: string | null) {
+  for (const entry of [...entries.values()].reverse()) {
+    if (Date.now() - entry.stored > retention) continue;
+    const payload = entry.value as Record<string, unknown>;
+    for (const group of [
+      payload.data,
+      payload.information,
+      payload.scholarships,
+      payload.events,
+    ]) {
+      if (!Array.isArray(group)) continue;
+      const item = group.find(
+        (item) => item.slug === slug && typeof item.content === 'string',
+      );
+      if (item)
+        return {
+          value: { item } as PublicPayloads['post'],
+          stored: entry.stored,
+        };
+    }
+  }
+}
+
+function invalidatePost(slug: string | null) {
+  // A rejected detail must not be resurrected from an older list snapshot.
+  for (const [key, entry] of entries) {
+    const value = entry.value as Record<string, unknown>;
+    if (
+      (value.item as ContentItem | undefined)?.slug === slug ||
+      [value.data, value.information, value.scholarships, value.events].some(
+        (group) =>
+          Array.isArray(group) && group.some((item) => item.slug === slug),
+      )
+    )
+      remove(key);
+  }
 }
 
 export function isPublicCacheFresh(key: string) {
@@ -97,25 +139,7 @@ export function peekPublicCache<T>(key: string): T | undefined {
     }
   }
   if (params.get('view') !== 'post') return undefined;
-  const slug = params.get('slug');
-  for (const entry of [...entries.values()].reverse()) {
-    if (Date.now() - entry.stored > retention) continue;
-    const payload = entry.value as Record<string, unknown>;
-    const groups = [
-      payload.data,
-      payload.information,
-      payload.scholarships,
-      payload.events,
-    ];
-    for (const group of groups) {
-      if (!Array.isArray(group)) continue;
-      const item = group.find(
-        (item) => item.slug === slug && typeof item.content === 'string',
-      );
-      if (item) return { item } as T;
-    }
-  }
-  return undefined;
+  return postSnapshot(params.get('slug'))?.value as T | undefined;
 }
 
 export function fetchPublicContent<K extends PublicView>(
@@ -125,6 +149,14 @@ export function fetchPublicContent<K extends PublicView>(
   const key = publicResource(view, routeURL);
   const existing = pending.get(key);
   if (existing) return existing as Promise<PublicResult<PublicPayloads[K]>>;
+  if (view === 'post' && !entries.has(key)) {
+    const snapshot = postSnapshot(
+      new URL(key, routeURL).searchParams.get('slug'),
+    );
+    // List reads already verified this full article. Inherit their timestamp,
+    // never start a new freshness window just because the reader opened it.
+    if (snapshot) storeEntry(key, snapshot.value, '', snapshot.stored);
+  }
   const fresh = entries.get(key);
   if (fresh && isPublicCacheFresh(key)) {
     entries.delete(key);
@@ -150,7 +182,7 @@ export function fetchPublicContent<K extends PublicView>(
         cache: 'no-store',
         credentials: 'omit',
         signal: AbortSignal.timeout(12000),
-        headers: cached ? { 'If-None-Match': cached.etag } : {},
+        headers: cached?.etag ? { 'If-None-Match': cached.etag } : {},
       });
       if (currentGeneration !== generation)
         return {
@@ -166,6 +198,8 @@ export function fetchPublicContent<K extends PublicView>(
       }
       if (!response.ok) {
         remove(key);
+        if (view === 'post' && response.status === 404)
+          invalidatePost(new URL(key, routeURL).searchParams.get('slug'));
         return {
           ok: false,
           status: response.status,
@@ -204,4 +238,18 @@ export function fetchPublicContent<K extends PublicView>(
     if (pending.get(key) === job) pending.delete(key);
   });
   return job as Promise<PublicResult<PublicPayloads[K]>>;
+}
+
+export function prefetchPublicContent(view: PublicView, routeURL: string) {
+  const connection = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+  if (
+    connection?.saveData ||
+    ['slow-2g', '2g'].includes(connection?.effectiveType ?? '')
+  )
+    return;
+  void fetchPublicContent(view, new URL(routeURL, window.location.origin).href);
 }

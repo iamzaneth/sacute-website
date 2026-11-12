@@ -1091,6 +1091,42 @@ h3 {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.post-text-toggle {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.post-text-toggle:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.navigation-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 3px;
+  z-index: 100;
+  background: var(--color-text-accent);
+  opacity: 0;
+  animation: navigation-progress-appear 0.15s ease 0.15s forwards;
+  pointer-events: none;
+}
+@keyframes navigation-progress-appear {
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .navigation-progress {
+    animation: none;
+    opacity: 1;
+  }
+}
 .post-source {
   display: inline-flex;
   align-items: center;
