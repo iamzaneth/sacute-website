@@ -12,6 +12,7 @@ const pending = new Map<string, Promise<PublicResult<unknown>>>();
 const maxEntries = 16,
   maxBytes = 4 * 1024 * 1024,
   retention = 5 * 60 * 1000;
+const freshness = 60 * 1000;
 let bytes = 0,
   generation = 0;
 function remove(key: string) {
@@ -29,7 +30,8 @@ export function primePublicCache(key: string, value: unknown, etag: string) {
   const same = entries.get(key);
   if (same && same.value === value && same.etag === etag) {
     entries.delete(key);
-    entries.set(key, { ...same, stored: Date.now() });
+    // Rendering or reading a snapshot must not extend its freshness window.
+    entries.set(key, same);
     return;
   }
   const size = JSON.stringify(value).length * 2;
@@ -39,6 +41,11 @@ export function primePublicCache(key: string, value: unknown, etag: string) {
   bytes += size;
   while (entries.size > maxEntries || bytes > maxBytes)
     remove(entries.keys().next().value!);
+}
+
+export function isPublicCacheFresh(key: string) {
+  const entry = entries.get(key);
+  return !!entry && Date.now() - entry.stored < freshness;
 }
 
 // Previously public snapshots are presentation hints while a fresh read runs.
@@ -118,6 +125,16 @@ export function fetchPublicContent<K extends PublicView>(
   const key = publicResource(view, routeURL);
   const existing = pending.get(key);
   if (existing) return existing as Promise<PublicResult<PublicPayloads[K]>>;
+  const fresh = entries.get(key);
+  if (fresh && isPublicCacheFresh(key)) {
+    entries.delete(key);
+    entries.set(key, fresh);
+    return Promise.resolve({
+      ok: true,
+      value: fresh.value as PublicPayloads[K],
+      etag: fresh.etag,
+    });
+  }
   const currentGeneration = generation;
   const job = (async (): Promise<PublicResult<unknown>> => {
     let cached = entries.get(key);
@@ -142,6 +159,8 @@ export function fetchPublicContent<K extends PublicView>(
           message: 'Nội dung đang được cập nhật. Vui lòng thử lại.',
         };
       if (response.status === 304 && cached) {
+        // Only a successful server check renews freshness.
+        remove(key);
         primePublicCache(key, cached.value, cached.etag);
         return { ok: true, value: cached.value, etag: cached.etag };
       }

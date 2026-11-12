@@ -15,6 +15,7 @@ import { ContentSkeleton } from './content-skeleton';
 import { publicResource } from './public-data';
 import {
   clearPublicCache,
+  isPublicCacheFresh,
   peekPublicCache,
 } from '../../services/public-content-cache';
 
@@ -66,7 +67,7 @@ function DestinationSkeleton({ url }: { url: string }) {
   );
 }
 export function usePublicFreshness() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
   useEffect(() => {
@@ -79,30 +80,27 @@ export function usePublicFreshness() {
       !pathname.startsWith('/posts/')
     )
       return;
-    let lastCheck = Date.now();
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    const view = pathname.startsWith('/posts/')
+      ? 'post'
+      : pathname === '/'
+        ? 'home'
+        : (pathname.slice(1) as 'information' | 'scholarships' | 'events');
+    const key = publicResource(view, pathname + search);
     const refresh = () => {
       if (
         document.visibilityState !== 'visible' ||
         navigation.state !== 'idle' ||
-        revalidator.state !== 'idle'
+        revalidator.state !== 'idle' ||
+        isPublicCacheFresh(key)
       )
         return;
-      const remaining = 2000 - (Date.now() - lastCheck);
-      if (remaining > 0) {
-        clearTimeout(timer);
-        timer = setTimeout(refresh, remaining);
-        return;
-      }
-      lastCheck = Date.now();
       void revalidator.revalidate();
     };
     document.addEventListener('visibilitychange', refresh);
     window.addEventListener('focus', refresh);
     return () => {
-      clearTimeout(timer);
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('focus', refresh);
     };
-  }, [pathname, navigation.state, revalidator]);
+  }, [pathname, search, navigation.state, revalidator]);
 }
