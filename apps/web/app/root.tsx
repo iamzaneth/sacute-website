@@ -19,7 +19,7 @@ import { useContentInvalidation } from './features/content/content-invalidation'
 import { usePublicFreshness } from './features/content/navigation-feedback';
 import { centerProfile } from './components/brand';
 import './styles/app.css';
-import './styles/recruitment.css';
+import './styles/branding.css';
 
 export function Layout({ children }: { children: ReactNode }) {
   return (

@@ -1,3 +1,4 @@
+import '../styles/recruitment.css';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { SectionHeading } from '../components/ui';

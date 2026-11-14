@@ -79,7 +79,8 @@ export default function Contact() {
                 </span>
                 <div>
                   <h3>{social.name}</h3>
-                  <a className="contact-information"
+                  <a
+                    className="contact-information"
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
