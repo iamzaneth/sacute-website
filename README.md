@@ -2,6 +2,14 @@
 
 Website của Trung tâm Tư vấn và Hỗ trợ Sinh viên, dùng React Router, NestJS và Supabase.
 
+## Cấu trúc
+
+- `apps/web/app/routes/{public,admin,resources}`: route theo khu vực; URL khai báo trong `routes.ts`.
+- `apps/web/app/features`: UI/hành vi theo tính năng; `services` tách admin, content, media và cache.
+- `apps/api/src/modules`: module nội dung và API; `common` chứa DTO/filter dùng chung.
+- `packages/shared/src`: cấu hình, kiểu dữ liệu, lifecycle và repository server.
+- `tests/{web,shared}`: kiểm thử theo ứng dụng và miền nghiệp vụ.
+
 ## Chạy local
 
 Yêu cầu Node.js ≥ 22.12 và pnpm 11.18.0.
@@ -30,10 +38,11 @@ Giữ `ADMIN_WRITES_ENABLED=false` khi chưa hoàn tất cấu hình CMS. Nếu 
 pnpm lint
 pnpm format:check
 pnpm typecheck
+pnpm test
 pnpm build
 ```
 
-Build không cần kết nối Supabase. Để chạy bản web đã build với cấu hình local:
+Test và build không cần kết nối Supabase. `pnpm test` chạy các kiểm thử cache, prefetch, xử lý ảnh và validation bằng Node.js; không cần Playwright hoặc database thật. Để chạy bản web đã build với cấu hình local:
 
 ```sh
 cd apps/web

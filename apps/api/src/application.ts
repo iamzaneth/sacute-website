@@ -4,7 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { HttpErrorFilter } from './common/http-error.filter';
+import { HttpErrorFilter } from './common/filters/http-error.filter';
 
 export async function createApplication() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {

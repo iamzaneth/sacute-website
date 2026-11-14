@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ContentDataModule } from '../../common/content-data.module';
+import { ContentDataModule } from '../content/content-data.module';
 import { InformationController } from './information.controller';
 import { InformationService } from './information.service';
 

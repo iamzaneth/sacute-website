@@ -11,6 +11,12 @@ export interface AdminPostRow extends PostRow {
   deleted_by: string | null;
   publication_recorded: boolean | null;
 }
+export const kindLabels: Record<string, string> = {
+  information: 'Thông tin',
+  scholarship: 'Học bổng',
+  event: 'Sự kiện',
+};
+
 export const kinds = ['information', 'scholarship', 'event'] as const;
 export const statuses = ['draft', 'published', 'archived'] as const;
 export interface AdminMedia {

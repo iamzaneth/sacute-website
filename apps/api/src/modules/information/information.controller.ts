@@ -1,5 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ListQueryDto } from '../../common/list-query.dto';
+import { ListQueryDto } from '../../common/dto/list-query.dto';
 import { InformationService } from './information.service';
 
 @Controller('information')

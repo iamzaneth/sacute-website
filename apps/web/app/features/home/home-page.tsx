@@ -7,12 +7,15 @@ import {
   GraduationCap,
   Users,
 } from 'lucide-react';
-import { ActionLink, EmptyState, SectionHeading } from '../../components/ui';
-import type { PublicPayloads, PublicData } from '../content/public-data';
-import { PublicContent } from '../content/public-content';
-import { ContentSkeleton } from '../content/content-skeleton';
-import { ArticleCard } from '../content/article-card';
-import { centerProfile } from '../../components/brand';
+import { ActionLink, EmptyState, SectionHeading } from '~/components/ui';
+import type {
+  PublicPayloads,
+  PublicData,
+} from '~/features/content/data/public-data';
+import { PublicContent } from '~/features/content/components/public-content';
+import { ContentSkeleton } from '~/features/content/components/content-skeleton';
+import { ArticleCard } from '~/features/content/components/article-card';
+import { centerProfile } from '~/components/layout/brand';
 
 const destinations = [
   {

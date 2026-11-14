@@ -7,6 +7,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '~',
+        replacement: fileURLToPath(new URL('./app', import.meta.url)),
+      },
+      {
         find: '@sacute/shared/content',
         replacement: fileURLToPath(
           new URL('../../packages/shared/src/content.ts', import.meta.url),

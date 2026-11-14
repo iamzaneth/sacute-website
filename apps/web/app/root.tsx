@@ -12,14 +12,18 @@ import {
   useMatches,
 } from 'react-router';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { ToastProvider, useToast } from './components/toast/toast';
-import { Sidebar, InstitutionalHeader, Footer } from './components/layout';
-import { siteConfig } from './lib/site-config';
-import { useContentInvalidation } from './features/content/content-invalidation';
-import { usePublicFreshness } from './features/content/navigation-feedback';
-import { centerProfile } from './components/brand';
-import './styles/app.css';
-import './styles/branding.css';
+import { ToastProvider, useToast } from '~/components/toast/toast';
+import {
+  Sidebar,
+  InstitutionalHeader,
+  Footer,
+} from '~/components/layout/site-layout';
+import { siteConfig } from '~/lib/site-config';
+import { useContentInvalidation } from '~/features/content/hooks/use-content-invalidation';
+import { usePublicFreshness } from '~/features/content/hooks/use-public-freshness';
+import { centerProfile } from '~/components/layout/brand';
+import '~/styles/app.css';
+import '~/styles/branding.css';
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
@@ -128,7 +132,7 @@ function useLoginNotification() {
     if (
       matches.some(
         (match) =>
-          match.id === 'routes/admin-layout' &&
+          match.id === 'routes/admin/layout' &&
           !!(match.data as { email?: string } | undefined)?.email,
       )
     ) {

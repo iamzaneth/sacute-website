@@ -19,7 +19,7 @@ import {
   type ToastOptions,
   type ToastType,
 } from './toast-state';
-import '../../styles/toast.css';
+import '~/styles/toast.css';
 
 type Notify = (message: string, options?: ToastOptions) => string;
 interface ToastAPI {

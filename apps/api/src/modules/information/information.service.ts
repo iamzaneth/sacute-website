@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { ContentRepository } from '../../common/content.repository';
-import { ListQueryDto } from '../../common/list-query.dto';
+import { ContentRepository } from '../content/content.repository';
+import { ListQueryDto } from '../../common/dto/list-query.dto';
 
 @Injectable()
 export class InformationService {

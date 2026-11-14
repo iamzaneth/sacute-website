@@ -15,7 +15,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "pnpm --filter @sacute/web preview",
-    "test": "pnpm --filter @sacute/shared build && node --test tests/*.test.mjs"
+    "test": "pnpm --filter @sacute/shared build && node --test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
