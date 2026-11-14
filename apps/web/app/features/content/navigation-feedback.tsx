@@ -1,3 +1,4 @@
+import { contentChangedEvent } from './content-invalidation';
 import { useEffect } from 'react';
 import { useLocation, useNavigation, useRevalidator } from 'react-router';
 import { publicResource } from './public-data';
@@ -36,9 +37,13 @@ export function usePublicFreshness() {
         return;
       void revalidator.revalidate();
     };
+    const timer = window.setInterval(refresh, 15_000);
+    window.addEventListener(contentChangedEvent, refresh);
     document.addEventListener('visibilitychange', refresh);
     window.addEventListener('focus', refresh);
     return () => {
+      window.clearInterval(timer);
+      window.removeEventListener(contentChangedEvent, refresh);
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('focus', refresh);
     };

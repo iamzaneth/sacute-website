@@ -1,4 +1,9 @@
-import { requireAdmin, privateHeaders } from '../services/admin-auth.server';
+import { ImageWorkBusyError } from '../services/image-work.server';
+import { imageVariant, imageWidth } from '../services/image-variants.server';
+import {
+  requireAdminRead,
+  privateHeaders,
+} from '../services/admin-auth.server';
 import {
   mediaBuckets,
   validStoragePath,
@@ -6,11 +11,17 @@ import {
 } from '../features/admin/model';
 import type { Route } from './+types/admin-media-file';
 // Resource route: no signed or public URL is minted for private media.
-export async function loader({
-  request,
-  context: requestContext,
-}: Route.LoaderArgs) {
-  const context = await requireAdmin(request, requestContext);
+export async function loader({ request }: Route.LoaderArgs) {
+  const context = await requireAdminRead(request);
+  let width;
+  try {
+    width = imageWidth(request);
+  } catch {
+    throw new Response('Kích thước ảnh không hợp lệ.', {
+      status: 400,
+      headers: context.headers,
+    });
+  }
   const params = new URL(request.url).searchParams;
   const bucket = params.get('bucket') ?? '';
   const path = params.get('path') ?? '';
@@ -37,8 +48,18 @@ export async function loader({
   const headers = privateHeaders();
   for (const cookie of context.headers.getSetCookie())
     headers.append('Set-Cookie', cookie);
-  headers.set('Content-Type', mime);
+  let image;
+  try {
+    image = await imageVariant(result.data, width);
+  } catch (error) {
+    if (error instanceof ImageWorkBusyError) headers.set('Retry-After', '1');
+    throw new Response('Không thể xử lý ảnh.', {
+      status: error instanceof ImageWorkBusyError ? 503 : 415,
+      headers,
+    });
+  }
+  headers.set('Content-Type', image.type);
   headers.set('Content-Security-Policy', "default-src 'none'; sandbox");
   headers.set('Content-Disposition', 'inline');
-  return new Response(result.data, { headers });
+  return new Response(image, { headers });
 }

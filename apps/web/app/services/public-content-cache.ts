@@ -1,3 +1,4 @@
+import { clearPublicImages, warmPublicImage } from './public-image-cache';
 import type { ContentItem, ListResponse } from '@sacute/shared';
 import type {
   PublicPayloads,
@@ -20,6 +21,7 @@ function remove(key: string) {
   entries.delete(key);
 }
 export function clearPublicCache() {
+  clearPublicImages();
   generation++;
   entries.clear();
   bytes = 0;
@@ -27,6 +29,8 @@ export function clearPublicCache() {
 }
 export function primePublicCache(key: string, value: unknown, etag: string) {
   if (typeof window === 'undefined') return;
+  if (entries.get(key)?.etag && entries.get(key)?.etag !== etag)
+    clearPublicImages();
   storeEntry(key, value, etag, Date.now());
 }
 
@@ -71,6 +75,7 @@ function postSnapshot(slug: string | null) {
 }
 
 function invalidatePost(slug: string | null) {
+  clearPublicImages();
   // A rejected detail must not be resurrected from an older list snapshot.
   for (const [key, entry] of entries) {
     const value = entry.value as Record<string, unknown>;
@@ -91,7 +96,7 @@ export function isPublicCacheFresh(key: string) {
 }
 
 // Previously public snapshots are presentation hints while a fresh read runs.
-// A list already contains the full article, so opening it need not blank the UI.
+// Legacy full-article snapshots can seed detail; summary-only lists cannot.
 export function peekPublicCache<T>(key: string): T | undefined {
   if (typeof window === 'undefined') return undefined;
   const cached = entries.get(key);
@@ -140,6 +145,32 @@ export function peekPublicCache<T>(key: string): T | undefined {
   }
   if (params.get('view') !== 'post') return undefined;
   return postSnapshot(params.get('slug'))?.value as T | undefined;
+}
+
+// Warm the first visible images as soon as data arrives, including list/home
+// intent prefetch. Waiting for a post-detail hover misses normal sidebar navigation.
+function warmContentImages(view: PublicView, value: unknown) {
+  if (view === 'post') {
+    const item = (value as Partial<PublicPayloads['post']>).item;
+    if (item) warmPublicImage(item.images?.[0] ?? item.coverImage);
+    return;
+  }
+  if (view === 'home') {
+    const payload = value as Partial<PublicPayloads['home']>;
+    for (const item of [
+      payload.information?.[0],
+      payload.scholarships?.[0],
+      payload.events?.[0],
+    ]
+      .filter(Boolean)
+      .slice(0, 2))
+      warmPublicImage(item?.coverImage ?? item?.images?.[0]);
+    return;
+  }
+  const payload = value as Partial<PublicPayloads['information']>;
+  if (Array.isArray(payload.data))
+    for (const item of payload.data.slice(0, 2))
+      warmPublicImage(item.coverImage ?? item.images?.[0]);
 }
 
 export function fetchPublicContent<K extends PublicView>(
@@ -221,6 +252,7 @@ export function fetchPublicContent<K extends PublicView>(
           message: 'Nội dung đang được cập nhật. Vui lòng thử lại.',
         };
       primePublicCache(key, value, etag);
+      warmContentImages(view, value);
       return { ok: true, value, etag };
     } catch {
       if (currentGeneration === generation) remove(key);
@@ -241,6 +273,7 @@ export function fetchPublicContent<K extends PublicView>(
 }
 
 export function prefetchPublicContent(view: PublicView, routeURL: string) {
+  if (pending.size >= 3) return;
   const connection = (
     navigator as Navigator & {
       connection?: { saveData?: boolean; effectiveType?: string };
@@ -251,5 +284,10 @@ export function prefetchPublicContent(view: PublicView, routeURL: string) {
     ['slow-2g', '2g'].includes(connection?.effectiveType ?? '')
   )
     return;
-  void fetchPublicContent(view, new URL(routeURL, window.location.origin).href);
+  void fetchPublicContent(
+    view,
+    new URL(routeURL, window.location.origin).href,
+  ).then((result) => {
+    if (result.ok) warmContentImages(view, result.value);
+  });
 }

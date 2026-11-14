@@ -201,6 +201,15 @@ export function mapPost(
           ? `${mediaPrefix}/${row.id}/${m.id}`
           : db.storage.from('post-media').getPublicUrl(m.storage_path).data
               .publicUrl,
+      // Legacy post-media objects already have public Storage URLs. Sending
+      // them through SSR for DB checks/download/resize adds a serial waterfall
+      // without making those public objects revocable. Private media stays gated.
+      ...(m.bucket === 'draft-media' &&
+      mediaPrefix === '/media/posts' &&
+      uuid.test(row.id) &&
+      uuid.test(m.id)
+        ? { thumbnailUrl: `${mediaPrefix}/${row.id}/${m.id}?width=640` }
+        : {}),
       alt: m.alt_text ?? '',
       width: m.width && m.width > 0 ? m.width : undefined,
       height: m.height && m.height > 0 ? m.height : undefined,
@@ -266,6 +275,10 @@ export function mapPost(
 }
 export const postSelection =
   'id,slug,kind,category,title,original_title,event_name,summary,content,content_format,tags,author_name,author_url,source_url,status,visible_from,deleted_at,published_on,published_at,published_at_precision,post_media(id,bucket,storage_path,alt_text,width,height,sort_order,is_cover),scholarship_details(provider,eligibility,opens_at,closes_at,application_url,lifecycle_status),event_details(starts_at,ends_at,starts_on,ends_on,location,registration_url,lifecycle_status)';
+export const summarySelection =
+  'id,slug,kind,category,title,event_name,summary,status,visible_from,deleted_at,published_on,published_at,published_at_precision,post_media(id,bucket,storage_path,alt_text,width,height,sort_order,is_cover),scholarship_details(lifecycle_status),event_details(lifecycle_status)';
+export const queryRPCEnabled = () =>
+  process.env.SACUTE_QUERY_RPC_ENABLED === 'true';
 // JSON quoting protects PostgREST filter grammar; wildcard characters are literal.
 const literal = (value: string) => JSON.stringify(value);
 const pattern = (value: string) =>
@@ -287,10 +300,10 @@ export class SupabaseContentRepository {
       throw new ContentError('invalid-data');
     return new Date(result.data);
   }
-  private query(now: Date, columns = postSelection) {
+  private query(now: Date, columns = postSelection, count = false) {
     return this.db
       .from('posts')
-      .select(columns, { count: 'exact' })
+      .select(columns, count ? { count: 'exact' } : {})
       .retry(false)
       .eq('status', 'published')
       .is('deleted_at', null)
@@ -299,6 +312,7 @@ export class SupabaseContentRepository {
   async list<K extends ContentKind>(
     kind: K,
     options: ListQuery = {},
+    countTotal = true,
   ): Promise<ListResponse<ContentMap[K]>> {
     const { page = 1, limit = 12, category, q } = options;
     if (
@@ -313,7 +327,15 @@ export class SupabaseContentRepository {
     )
       throw new ContentError('invalid-data', 400);
     const now = await this.databaseTime();
-    let query = this.query(now);
+    let query = this.query(now, summarySelection, countTotal)
+      .order('is_cover', {
+        referencedTable: 'post_media',
+        ascending: false,
+        nullsFirst: false,
+      })
+      .order('sort_order', { referencedTable: 'post_media', ascending: true })
+      .order('id', { referencedTable: 'post_media', ascending: true })
+      .limit(1, { referencedTable: 'post_media' });
     if (kind === 'information') {
       query = query.in(
         'kind',
@@ -345,12 +367,21 @@ export class SupabaseContentRepository {
       .order('id', { ascending: true })
       .range((page - 1) * limit, page * limit - 1);
     if (result.error) this.fail(result.error);
-    if (!Array.isArray(result.data) || result.count === null)
+    if (!Array.isArray(result.data) || (countTotal && result.count === null))
       throw new ContentError('invalid-data');
     const data = (result.data as unknown as PostRow[]).map((row) => {
       const post = mapPost(row, this.db, now, this.mediaPrefix);
       return {
-        ...post,
+        id: post.id,
+        slug: post.slug,
+        kind: post.kind,
+        title: post.title,
+        summary: post.summary,
+        eventName: post.eventName,
+        coverImage: post.coverImage,
+        publishedAt: post.publishedAt,
+        publishedAtPrecision: post.publishedAtPrecision,
+        ...('status' in post ? { status: post.status } : {}),
         category:
           kind === 'information'
             ? row.kind === 'event'
@@ -361,17 +392,32 @@ export class SupabaseContentRepository {
     });
     return {
       data,
-      meta: { total: result.count ?? 0, page, limit, source: 'supabase' },
+      meta: {
+        total: result.count ?? data.length,
+        page,
+        limit,
+        source: 'supabase',
+      },
     };
   }
   async getEventCategories(): Promise<string[]> {
+    if (queryRPCEnabled()) {
+      const result = await this.db.rpc('sacute_event_categories');
+      if (result.error) this.fail(result.error);
+      if (
+        !Array.isArray(result.data) ||
+        result.data.some((name: unknown) => typeof name !== 'string')
+      )
+        throw new ContentError('invalid-data');
+      return (result.data as string[]).sort((a, b) => a.localeCompare(b, 'vi'));
+    }
     // Facets read only two small metadata fields, never article bodies/media.
     // Range each request to avoid silently truncating at the PostgREST row cap.
     const now = await this.databaseTime();
     const categories = new Set<string>();
     const batchSize = 500;
     for (let offset = 0; ;) {
-      const result = await this.query(now, 'event_name,category')
+      const result = await this.query(now, 'event_name,category', true)
         .eq('kind', 'event')
         .order('id', { ascending: true })
         .range(offset, offset + batchSize - 1);
@@ -392,6 +438,17 @@ export class SupabaseContentRepository {
     return [...categories].sort((a, b) => a.localeCompare(b, 'vi'));
   }
   async getPostBySlug(slug: string): Promise<PublicPost | null> {
+    if (
+      !slug ||
+      slug.length > 180 ||
+      slug.includes('/') ||
+      slug.includes('\\') ||
+      slug.includes('%') ||
+      [...slug].some(
+        (char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127,
+      )
+    )
+      return null;
     const now = await this.databaseTime();
     const result = await this.query(now).eq('slug', slug).maybeSingle();
     if (result.error) this.fail(result.error);
@@ -409,19 +466,25 @@ export class SupabaseContentRepository {
   async readPublicMedia(postId: string, mediaId: string): Promise<Blob | null> {
     if (!uuid.test(postId) || !uuid.test(mediaId)) return null;
     const now = await this.databaseTime();
-    const result = await this.query(now).eq('id', postId).maybeSingle();
+    const result = await this.query(
+      now,
+      'id,status,visible_from,deleted_at,post_media!inner(id,bucket,storage_path)',
+    )
+      .eq('id', postId)
+      .eq('post_media.id', mediaId)
+      .maybeSingle();
     if (result.error) this.fail(result.error);
     const row = result.data as unknown as PostRow | null;
     if (!row || deriveLifecycle(row, now) !== 'published') return null;
     const media = row.post_media.find((m) => m.id === mediaId);
     if (
       !media ||
-      media.bucket !== 'draft-media' ||
+      !['post-media', 'draft-media'].includes(media.bucket) ||
       !safeMediaPath(media.storage_path)
     )
       return null;
     const download = await this.db.storage
-      .from('draft-media')
+      .from(media.bucket)
       .download(
         media.storage_path,
         { cacheNonce: crypto.randomUUID() },
@@ -438,7 +501,7 @@ export class SupabaseContentRepository {
     return download.data;
   }
   async getLatestPosts(limit = 3, kind: ContentKind = 'information') {
-    return (await this.list(kind, { limit })).data;
+    return (await this.list(kind, { limit }, false)).data;
   }
   async listPosts(options: ListQuery & { kind?: ContentKind } = {}) {
     return this.list(options.kind ?? 'information', options);

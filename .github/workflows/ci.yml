@@ -16,6 +16,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build applications without cloud credentials
         run: pnpm build
+      - run: pnpm test
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm format:check

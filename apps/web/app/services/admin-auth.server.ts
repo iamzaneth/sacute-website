@@ -1,3 +1,6 @@
+import { createVersionedCache } from './versioned-cache.server';
+import { queryRPCEnabled } from '@sacute/shared/content';
+import { readAdminCache } from './admin-cache.server';
 import {
   createServerClient,
   parseCookieHeader,
@@ -161,6 +164,7 @@ export function createAuthContext(
 export async function verifyAdmin(
   context: AuthContext,
   env: Record<string, unknown> = process.env,
+  checkWriteGate = true,
 ): Promise<AdminContext> {
   const { db, headers } = context;
   let result;
@@ -201,7 +205,7 @@ export async function verifyAdmin(
       headers,
     });
   let databaseWrites = false;
-  if (writesEnabled(env)) {
+  if (checkWriteGate && writesEnabled(env)) {
     try {
       const gate = await db.rpc('sacute_admin_writes_enabled');
       databaseWrites = !gate.error && gate.data === true;
@@ -226,6 +230,24 @@ export function requireAdmin(request: Request, requestContext: object) {
   }
   return context;
 }
+// Media only needs current identity/membership, never the write gate.
+export function requireAdminRead(request: Request) {
+  return verifyAdmin(createAuthContext(request), process.env, false);
+}
+const readVerifiedAdmin = createVersionedCache();
+export function adminResourceKey(resource: string) {
+  const url = new URL(resource, 'http://admin.local');
+  const names =
+    url.pathname === '/admin/posts' ? ['q', 'kind', 'status', 'page'] : [];
+  const params = new URLSearchParams();
+  for (const name of names) {
+    const raw = url.searchParams.get(name) ?? '';
+    const value = name === 'q' ? raw.trim() : raw;
+    if (value && !(name === 'page' && Number(value) === 1))
+      params.set(name, name === 'page' ? String(Number(value)) : value);
+  }
+  return url.pathname + (params.size ? `?${params}` : '');
+}
 export async function requireAdminMutation(
   request: Request,
   requestContext: object,
@@ -243,9 +265,27 @@ export async function requireAdminMutation(
 export async function adminRead<T>(
   context: AuthContext,
   read: () => Promise<T>,
+  resource?: string,
 ) {
   try {
-    return data(await read(), { headers: context.headers });
+    const admin = context as AdminContext;
+    const key = resource ? adminResourceKey(resource) : undefined;
+    const value =
+      key && admin.user && queryRPCEnabled()
+        ? await readVerifiedAdmin(
+            JSON.stringify([admin.user.id, admin.writesEnabled, key]),
+            async () => {
+              const result = await admin.db.rpc('sacute_admin_revision');
+              if (result.error || typeof result.data !== 'string')
+                throw new Error('Missing revision');
+              return { revision: result.data, now: '' };
+            },
+            read,
+          )
+        : key && admin.user
+          ? await readAdminCache(admin.user.id, admin.writesEnabled, key, read)
+          : await read();
+    return data(value, { headers: context.headers });
   } catch (error) {
     if (error instanceof Response) {
       const headers = new Headers(context.headers);

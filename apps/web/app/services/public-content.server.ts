@@ -1,8 +1,13 @@
+import {
+  createVersionedCache,
+  type ContentVersion,
+} from './versioned-cache.server';
 import { createHash } from 'node:crypto';
 import { isbot } from 'isbot';
 import { data } from 'react-router';
 import {
   ContentError,
+  queryRPCEnabled,
   SupabaseContentRepository,
 } from '@sacute/shared/content';
 import {
@@ -16,12 +21,36 @@ import type {
   PublicResult,
 } from '../features/content/public-data';
 
+const readPublicSnapshot = createVersionedCache();
+// The enclosing representation read verifies this revision before/after loading.
+// Facets are independent of q/page/category and can share that verified version.
+const facets = new Map<string, Promise<string[]>>();
+function eventCategories(
+  repository: SupabaseContentRepository,
+  version?: ContentVersion,
+) {
+  if (!version) return repository.getEventCategories();
+  const cached = facets.get(version.revision);
+  if (cached) return cached;
+  const job = repository.getEventCategories();
+  facets.set(version.revision, job);
+  while (facets.size > 4) facets.delete(facets.keys().next().value!);
+  void job.catch(() => {
+    if (facets.get(version.revision) === job) facets.delete(version.revision);
+  });
+  return job;
+}
+
 const readers = {
   home: async (repository: SupabaseContentRepository) => {
     const [information, scholarships, events] = await Promise.all([
-      repository.list('information', { category: 'Thông báo', limit: 1 }),
-      repository.list('scholarships', { limit: 1 }),
-      repository.list('events', { limit: 2 }),
+      repository.list(
+        'information',
+        { category: 'Thông báo', limit: 1 },
+        false,
+      ),
+      repository.list('scholarships', { limit: 1 }, false),
+      repository.list('events', { limit: 2 }, false),
     ]);
     return {
       information: information.data,
@@ -33,10 +62,14 @@ const readers = {
     repository.list('information', listQuery(request, 'information')),
   scholarships: (repository: SupabaseContentRepository, request: Request) =>
     repository.list('scholarships', listQuery(request, 'scholarships')),
-  events: async (repository: SupabaseContentRepository, request: Request) => {
+  events: async (
+    repository: SupabaseContentRepository,
+    request: Request,
+    version?: ContentVersion,
+  ) => {
     const [result, categories] = await Promise.all([
       repository.list('events', listQuery(request, 'events')),
-      repository.getEventCategories(),
+      eventCategories(repository, version),
     ]);
     return { ...result, categories };
   },
@@ -55,19 +88,43 @@ export async function loadPublicResult<K extends PublicView>(
   request: Request,
 ): Promise<PublicResult<PublicPayloads[K]>> {
   try {
-    // One authoritative clock per request, shared by homepage blocks and facets.
-    // The client is anonymous even when an admin cookie accompanies the request.
-    let clock: Promise<Date> | undefined;
-    const repository = new SupabaseContentRepository(
-      publicDatabase(),
-      () => (clock ??= contentProvider().databaseTime()),
+    const read = async (version?: ContentVersion) => {
+      let clock: Promise<Date> | undefined;
+      const repository = new SupabaseContentRepository(publicDatabase(), () =>
+        version
+          ? new Date(version.now)
+          : (clock ??= contentProvider().databaseTime()),
+      );
+      const value = (await readers[view](
+        repository,
+        request,
+        version,
+      )) as PublicPayloads[K];
+      const etag = `W/"${createHash('sha256').update(JSON.stringify(value)).digest('hex')}"`;
+      return { ok: true as const, value, etag };
+    };
+    if (!queryRPCEnabled()) return await read();
+    const params = new URL(request.url).searchParams;
+    const key = JSON.stringify([
+      view,
+      view === 'post'
+        ? params.get('slug')
+        : listQuery(request, view === 'home' ? 'information' : view),
+    ]);
+    return await readPublicSnapshot(
+      key,
+      async () => {
+        const result = await publicDatabase().rpc('sacute_public_revision');
+        if (
+          result.error ||
+          typeof result.data?.revision !== 'string' ||
+          !Number.isFinite(Date.parse(result.data?.now))
+        )
+          throw new ContentError('query');
+        return result.data as ContentVersion;
+      },
+      read,
     );
-    const value = (await readers[view](
-      repository,
-      request,
-    )) as PublicPayloads[K];
-    const etag = `W/"${createHash('sha256').update(JSON.stringify(value)).digest('hex')}"`;
-    return { ok: true, value, etag };
   } catch (error) {
     const status =
       error instanceof Response

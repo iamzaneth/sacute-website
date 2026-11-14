@@ -101,7 +101,7 @@ export function HomePage({
           >
             {(content) =>
               content.information.length ? (
-                <ArticleCard item={content.information[0]} preview />
+                <ArticleCard item={content.information[0]} preview priority />
               ) : (
                 <EmptyState
                   icon={Bell}
@@ -147,7 +147,7 @@ export function HomePage({
           >
             {(content) =>
               content.scholarships.length ? (
-                <ArticleCard item={content.scholarships[0]} preview />
+                <ArticleCard item={content.scholarships[0]} preview priority />
               ) : (
                 <EmptyState
                   compact

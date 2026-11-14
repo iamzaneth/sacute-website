@@ -16,14 +16,17 @@ function moduleURL(source) {
 const resourceURL = moduleURL(
   await readFile('apps/web/app/features/content/public-data.ts', 'utf8'),
 );
+const imageCacheURL = moduleURL(
+  await readFile('apps/web/app/services/public-image-cache.ts', 'utf8'),
+);
 const cache = await import(
   moduleURL(
-    (
-      await readFile('apps/web/app/services/public-content-cache.ts', 'utf8')
-    ).replaceAll(
-      "'../features/content/public-data'",
-      JSON.stringify(resourceURL),
-    ),
+    (await readFile('apps/web/app/services/public-content-cache.ts', 'utf8'))
+      .replaceAll(
+        "'../features/content/public-data'",
+        JSON.stringify(resourceURL),
+      )
+      .replaceAll("'./public-image-cache'", JSON.stringify(imageCacheURL)),
   )
 );
 const { publicResource } = await import(resourceURL);
@@ -170,4 +173,14 @@ test('expired snapshots cannot seed article detail or refresh their own age', as
   };
   await cache.fetchPublicContent('post', postURL);
   assert.equal(requests, 1);
+});
+
+test('malformed encoded slugs produce a stable resource key instead of throwing', () => {
+  assert.equal(
+    new URL(
+      publicResource('post', `${origin}/posts/%ZZ`),
+      origin,
+    ).searchParams.get('slug'),
+    '%ZZ',
+  );
 });

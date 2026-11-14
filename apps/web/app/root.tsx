@@ -15,6 +15,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { ToastProvider, useToast } from './components/toast/toast';
 import { Sidebar, InstitutionalHeader, Footer } from './components/layout';
 import { siteConfig } from './lib/site-config';
+import { useContentInvalidation } from './features/content/content-invalidation';
 import { usePublicFreshness } from './features/content/navigation-feedback';
 import { centerProfile } from './components/brand';
 import './styles/app.css';
@@ -79,6 +80,7 @@ export function Layout({ children }: { children: ReactNode }) {
 export default function App() {
   const { pathname } = useLocation();
   const navigation = useNavigation();
+  useContentInvalidation();
   usePublicFreshness();
   useLoginNotification();
   if (pathname === '/admin' || pathname.startsWith('/admin/'))

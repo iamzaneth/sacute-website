@@ -197,8 +197,8 @@ function ListingResults({
     <>
       {items.length ? (
         <div className="article-list">
-          {items.map((item) => (
-            <ArticleCard key={item.id} item={item} />
+          {items.map((item, index) => (
+            <ArticleCard key={item.id} item={item} priority={index === 0} />
           ))}
         </div>
       ) : (

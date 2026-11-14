@@ -1,3 +1,5 @@
+import { preload } from 'react-dom';
+import { publicImageSource } from '../services/public-image-cache';
 import { Link, useLocation, isRouteErrorResponse } from 'react-router';
 import { useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
@@ -64,6 +66,13 @@ export const meta: Route.MetaFunction = ({ data, error }) =>
       );
 
 export default function Post({ loaderData }: Route.ComponentProps) {
+  const firstImage = loaderData.item.images?.[0] ?? loaderData.item.coverImage;
+  // React hoists this hint to the SSR head, before the gallery is parsed.
+  if (typeof window === 'undefined' && firstImage)
+    preload(publicImageSource(firstImage), {
+      as: 'image',
+      fetchPriority: 'high',
+    });
   const location = useLocation();
   const content = useMemo(
     () =>

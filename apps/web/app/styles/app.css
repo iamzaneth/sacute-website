@@ -1315,6 +1315,7 @@ h3 {
   overflow: hidden;
   padding: 0;
   cursor: zoom-in;
+  background: var(--color-orange-subtle);
 }
 
 .post-photo:focus-visible {

@@ -23,12 +23,16 @@ export type PublicData<T> = PublicResult<T> | Promise<PublicResult<T>>;
 export function publicResource(view: PublicView, routeURL: string) {
   const url = new URL(routeURL, 'http://route.local');
   const params = new URLSearchParams({ view });
-  if (view === 'post')
-    params.set(
-      'slug',
-      decodeURIComponent(url.pathname.slice('/posts/'.length)),
-    );
-  else if (view !== 'home') {
+  if (view === 'post') {
+    const raw = url.pathname.slice('/posts/'.length);
+    let slug = raw;
+    try {
+      slug = decodeURIComponent(raw);
+    } catch {
+      /* Invalid encoding becomes a 404, never a render exception. */
+    }
+    params.set('slug', slug);
+  } else if (view !== 'home') {
     params.set('page', url.searchParams.get('page') ?? '1');
     params.set('q', url.searchParams.get('q') ?? '');
     params.set(

@@ -89,10 +89,12 @@ export function ArticleCard({
   item,
   preview = false,
   detail = false,
+  priority = false,
 }: {
   item: ContentItem;
   preview?: boolean;
   detail?: boolean;
+  priority?: boolean;
 }) {
   const thumbnail = item.coverImage ?? item.images?.[0];
   const titleId = useId();
@@ -124,11 +126,25 @@ export function ArticleCard({
           {thumbnail && (
             <div className="post-thumbnail">
               <img
-                src={thumbnail.url}
+                src={thumbnail.thumbnailUrl ?? thumbnail.url}
+                srcSet={
+                  thumbnail.thumbnailUrl
+                    ? `${thumbnail.thumbnailUrl.replace('width=640', 'width=320')} 320w, ${thumbnail.thumbnailUrl} 640w`
+                    : undefined
+                }
+                sizes="(max-width: 600px) 100vw, 360px"
+                decoding="async"
+                fetchPriority={priority ? 'high' : undefined}
+                onError={(event) => {
+                  if (event.currentTarget.getAttribute('src') === thumbnail.url)
+                    return;
+                  event.currentTarget.removeAttribute('srcset');
+                  event.currentTarget.src = thumbnail.url;
+                }}
                 alt={thumbnail.alt}
                 width={thumbnail.width}
                 height={thumbnail.height}
-                loading="lazy"
+                loading={priority ? 'eager' : 'lazy'}
               />
             </div>
           )}

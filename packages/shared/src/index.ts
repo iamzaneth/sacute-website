@@ -32,6 +32,7 @@ export const navigation: readonly { path: PublicPath; label: string }[] = [
 ];
 
 export interface PostImage {
+  thumbnailUrl?: string;
   url: string;
   alt: string;
   width?: number;

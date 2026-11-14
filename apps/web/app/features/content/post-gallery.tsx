@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { publicImageSource } from '../../services/public-image-cache';
 import type { PostImage } from '@sacute/shared';
 
 export function PostGallery({
@@ -20,11 +21,19 @@ export function PostGallery({
       document.body.style.overflow = previousOverflow;
     };
   }, [open]);
-  if (!images.length) return null;
   const visible = images.slice(0, 5);
-  const active = images[selected];
+  const activeIndex = Math.min(selected, Math.max(0, images.length - 1));
+  const active = images[activeIndex];
+  if (!active) {
+    if (open) setOpen(false);
+    return null;
+  }
   function move(offset: number) {
-    setSelected((index) => (index + offset + images.length) % images.length);
+    setSelected(
+      (index) =>
+        (Math.min(index, images.length - 1) + offset + images.length) %
+        images.length,
+    );
   }
   return (
     <>
@@ -37,6 +46,16 @@ export function PostGallery({
           <button
             type="button"
             className="post-photo"
+            style={
+              visible.length === 1
+                ? {
+                    aspectRatio:
+                      image.width && image.height
+                        ? `${image.width} / ${image.height}`
+                        : '3 / 2',
+                  }
+                : undefined
+            }
             key={image.url}
             aria-label={`Xem ảnh ${index + 1} trên ${images.length}: ${title}`}
             onClick={() => {
@@ -46,11 +65,17 @@ export function PostGallery({
             }}
           >
             <img
-              src={image.url}
+              src={publicImageSource(image)}
+              decoding="async"
+              onError={(event) => {
+                if (event.currentTarget.getAttribute('src') !== image.url)
+                  event.currentTarget.src = image.url;
+              }}
               alt={image.alt}
               width={image.width}
               height={image.height}
-              loading="lazy"
+              loading={index === 0 ? 'eager' : 'lazy'}
+              fetchPriority={index === 0 ? 'high' : undefined}
             />
             {index === 4 && images.length > 5 && (
               <span className="more-photos" aria-hidden="true">
@@ -99,7 +124,7 @@ export function PostGallery({
           <div className="photo-viewer-content">
             <div className="photo-viewer-toolbar">
               <p aria-live="polite">
-                Ảnh {selected + 1} / {images.length}
+                Ảnh {activeIndex + 1} / {images.length}
               </p>
               <button
                 type="button"
