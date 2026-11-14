@@ -1,7 +1,7 @@
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { SectionHeading } from '../components/ui';
-import { BrandLogo } from '../components/brand';
+import { BrandLogo, BrandLogo2 } from '../components/brand';
 import { ProcessSteps } from '../features/recruitment/process-steps';
 import { TeamExplorer } from '../features/recruitment/team-explorer';
 import { pageMeta } from '../lib/seo';
@@ -53,7 +53,7 @@ export default function Recruitment() {
           </p>
         </div>
         <div className="recruitment-hero-brand">
-          <BrandLogo />
+          <BrandLogo2 />
           <span>5 BAN · CÙNG TÌM HIỂU</span>
         </div>
       </header>
