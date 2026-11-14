@@ -1,6 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { MediaLibraryPicker } from './media-library-picker';
+import { PostHelp } from './post-help';
+import { MediaUpload } from './media-upload';
 import { useToast, useToastFeedback } from '../../components/toast/toast';
-import { Form, Link, useNavigation, useSearchParams } from 'react-router';
+import {
+  Form,
+  Link,
+  useBlocker,
+  useNavigation,
+  useSearchParams,
+} from 'react-router';
 import {
   deriveLifecycle,
   lifecycleLabels,
@@ -8,6 +17,8 @@ import {
 } from '@sacute/shared';
 import { ScheduleFields, LifecycleControls } from './lifecycle-controls';
 import {
+  validatePostForm,
+  ValidationError,
   editSnapshot,
   relationOne,
   mediaReference,
@@ -18,16 +29,46 @@ import {
 } from './model';
 import { kindLabels } from '../../routes/admin-posts';
 
+const fieldLabels: Record<string, string> = {
+  title: 'Tiêu đề',
+  slug: 'Slug',
+  category: 'Danh mục',
+  summary: 'Tóm tắt',
+  content: 'Nội dung',
+  kind: 'Loại bài',
+  content_format: 'Định dạng nội dung',
+  tags: 'Thẻ',
+  source_url: 'URL nguồn',
+  published_on: 'Ngày công bố',
+  published_at: 'Thời điểm công bố',
+  published_at_precision: 'Độ chính xác ngày công bố',
+  schedule: 'Hẹn giờ đăng',
+  provider: 'Đơn vị cấp',
+  eligibility: 'Điều kiện',
+  opens_at: 'Mở đơn',
+  closes_at: 'Đóng đơn',
+  application_url: 'URL ứng tuyển',
+  scholarship_status: 'Trạng thái học bổng',
+  event_name: 'Tên chương trình',
+  starts_on: 'Ngày bắt đầu',
+  ends_on: 'Ngày kết thúc',
+  starts_at: 'Thời điểm bắt đầu',
+  ends_at: 'Thời điểm kết thúc',
+  location: 'Địa điểm',
+  registration_url: 'URL đăng ký',
+  event_status: 'Trạng thái sự kiện',
+  media: 'Ảnh bìa và thư viện',
+  intent: 'Thao tác',
+};
+
 export function PostEditor({
   post,
-  choices,
   mediaBaseUrl,
   writesEnabled,
   now,
-  errors = {},
+  errors: serverErrors = {},
 }: {
   post: AdminPostRow | null;
-  choices: string[];
   mediaBaseUrl: string;
   writesEnabled: boolean;
   now: string;
@@ -35,6 +76,16 @@ export function PostEditor({
 }) {
   const state = post ? deriveLifecycle(post, now) : 'draft';
   const editable = !['archived', 'trashed'].includes(state);
+  const [clientErrors, setClientErrors] = useState<Record<
+    string,
+    string
+  > | null>(null);
+  const errors = clientErrors ?? serverErrors;
+  const errorSummary = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [precision, setPrecision] = useState(
+    post?.published_at_precision ?? 'date',
+  );
   const [editDate, setEditDate] = useState(false);
   const [kind, setKind] = useState(post?.kind ?? 'information');
   const [media, setMedia] = useState<AdminMedia[]>(() =>
@@ -49,16 +100,41 @@ export function PostEditor({
   const [path, setPath] = useState('');
   const [mediaError, setMediaError] = useState('');
   const [dirty, setDirty] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const navigation = useNavigation();
   const [params] = useSearchParams();
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      dirty && currentLocation.pathname !== nextLocation.pathname,
+  );
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      if (
+        window.confirm(
+          'Bạn có thay đổi chưa lưu. Rời trang và bỏ các thay đổi này?',
+        )
+      )
+        blocker.proceed();
+      else blocker.reset();
+    }
+  }, [blocker]);
+  useEffect(() => {
+    if (!dirty) return;
+    const guard = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', guard);
+    return () => window.removeEventListener('beforeunload', guard);
+  }, [dirty]);
   const scholarship = post && relationOne(post.scholarship_details);
   const event = post && relationOne(post.event_details);
-  const busy = navigation.state !== 'idle';
+  const busy = navigation.state !== 'idle' || uploading;
   const toast = useToast();
   useToastFeedback(mediaError, mediaError || undefined, 'warning');
-  const errorMessage = Object.values(errors).join(' ');
+  const errorMessage = Object.values(serverErrors).join(' ');
   useToastFeedback(
-    errors,
+    serverErrors,
     errorMessage
       ? 'Chưa lưu bài viết. Kiểm tra các trường được đánh dấu.'
       : undefined,
@@ -70,6 +146,30 @@ export function PostEditor({
     'success',
     `post:${params.get('saved')}`,
   );
+  const checkForm = (form: HTMLFormElement, intent: string) => {
+    const data = new FormData(form);
+    data.set('intent', intent);
+    try {
+      validatePostForm(data, { current: post, now: new Date() });
+      return {};
+    } catch (error) {
+      if (error instanceof ValidationError) return error.fields;
+      throw error;
+    }
+  };
+  const focusField = (form: HTMLFormElement, name: string) => {
+    const target = name === 'schedule' ? 'schedule_date' : name;
+    const element = form.elements.namedItem(target);
+    if (element instanceof HTMLElement) {
+      let parent = element.parentElement;
+      while (parent && parent !== form) {
+        if (parent instanceof HTMLDetailsElement) parent.open = true;
+        parent = parent.parentElement;
+      }
+      element.focus();
+      element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    } else errorSummary.current?.focus();
+  };
   const field = (
     name: string,
     label: string,
@@ -84,8 +184,15 @@ export function PostEditor({
     } = {},
   ) => (
     <label className={options.multiline ? 'admin-wide' : ''}>
-      {label}
-      {options.required && ' *'}
+      <span>
+        {label}
+        {options.required && (
+          <span className="admin-required" aria-hidden="true">
+            {' '}
+            *
+          </span>
+        )}
+      </span>
       {options.multiline ? (
         <textarea
           name={name}
@@ -129,22 +236,109 @@ export function PostEditor({
     <>
       <div className="admin-title">
         <h1>{post ? 'Biên tập bài viết' : 'Tạo bài viết'}</h1>
-        <Link to="/admin/posts">Danh sách bài viết</Link>
+        <div className="admin-actions">
+          <Link to="/admin/posts">Danh sách bài viết</Link>
+          <PostHelp />
+        </div>
       </div>
       {Object.keys(errors).length > 0 && (
-        <div className="admin-errors" role="alert">
-          <strong>Chưa lưu bài viết.</strong>
+        <div
+          className="admin-errors"
+          role="alert"
+          ref={errorSummary}
+          tabIndex={-1}
+        >
+          <strong>Chưa lưu bài viết. Kiểm tra các trường sau:</strong>
           <ul>
             {Object.entries(errors).map(([key, message]) => (
-              <li key={key}>{message}</li>
+              <li key={key}>
+                {fieldLabels[key] ? (
+                  <button
+                    type="button"
+                    className="admin-error-link"
+                    onClick={() => {
+                      if (formRef.current) focusField(formRef.current, key);
+                    }}
+                  >
+                    {fieldLabels[key]}: {message}
+                  </button>
+                ) : (
+                  message
+                )}
+              </li>
             ))}
           </ul>
         </div>
       )}
       <Form
         method="post"
+        ref={formRef}
         className="admin-form"
-        onChange={() => setDirty(true)}
+        noValidate
+        onChange={(event) => {
+          setDirty(true);
+          const target = event.target;
+          if (
+            target instanceof HTMLInputElement ||
+            target instanceof HTMLSelectElement ||
+            target instanceof HTMLTextAreaElement
+          ) {
+            const next = { ...errors };
+            delete next[target.name];
+            if (
+              ['schedule_date', 'schedule_time', 'timezone'].includes(
+                target.name,
+              )
+            )
+              delete next.schedule;
+            setClientErrors(next);
+          }
+        }}
+        onBlur={(event) => {
+          const target = event.target;
+          if (!(
+            target instanceof HTMLInputElement ||
+            target instanceof HTMLTextAreaElement
+          ))
+            return;
+          if (
+            !target.name ||
+            ['file', 'revision', 'expected', 'media'].includes(target.name)
+          )
+            return;
+          const found = checkForm(
+            event.currentTarget,
+            state === 'draft' ? 'draft' : 'save',
+          );
+          setClientErrors((previous) => {
+            const next = { ...(previous ?? serverErrors) };
+            delete next[target.name];
+            if (found[target.name]) next[target.name] = found[target.name];
+            return next;
+          });
+        }}
+        onSubmit={(event) => {
+          if (busy || !writesEnabled || !editable) {
+            event.preventDefault();
+            return;
+          }
+          const submitter = (event.nativeEvent as SubmitEvent).submitter;
+          const intent =
+            submitter instanceof HTMLButtonElement
+              ? submitter.value
+              : state === 'draft'
+                ? 'draft'
+                : 'save';
+          const found = checkForm(event.currentTarget, intent);
+          setClientErrors(Object.keys(found).length ? found : null);
+          if (Object.keys(found).length) {
+            event.preventDefault();
+            focusField(event.currentTarget, Object.keys(found)[0]);
+            toast.error(
+              'Chưa gửi bài viết. Vui lòng kiểm tra các trường được đánh dấu.',
+            );
+          }
+        }}
       >
         <input
           type="hidden"
@@ -173,9 +367,16 @@ export function PostEditor({
                 : 'Ví dụ: hoc-bong-sinh-vien-2026',
             })}
             <label>
-              Loại bài
+              <span>
+                Loại bài
+                <span className="admin-required" aria-hidden="true">
+                  {' '}
+                  *
+                </span>
+              </span>
               <select
                 name="kind"
+                required
                 value={kind}
                 onChange={(event) =>
                   setKind(event.target.value as AdminPostRow['kind'])
@@ -203,9 +404,16 @@ export function PostEditor({
               max: 120000,
             })}
             <label>
-              Định dạng nội dung
+              <span>
+                Định dạng nội dung
+                <span className="admin-required" aria-hidden="true">
+                  {' '}
+                  *
+                </span>
+              </span>
               <select
                 name="content_format"
+                required
                 defaultValue={post?.content_format ?? 'plain-text'}
               >
                 <option value="plain-text">Văn bản</option>
@@ -244,27 +452,43 @@ export function PostEditor({
           {editDate && (
             <div className="admin-fields">
               <label>
-                Độ chính xác ngày công bố
+                <span>
+                  Độ chính xác ngày công bố
+                  <span className="admin-required" aria-hidden="true">
+                    {' '}
+                    *
+                  </span>
+                </span>
                 <select
                   name="published_at_precision"
-                  defaultValue={post?.published_at_precision ?? 'date'}
+                  required
+                  value={precision}
+                  onChange={(event) =>
+                    setPrecision(event.target.value as 'date' | 'datetime')
+                  }
                 >
                   <option value="date">Chỉ có ngày</option>
                   <option value="datetime">Thời điểm chính xác</option>
                 </select>
+                {errors.published_at_precision && (
+                  <span className="admin-field-error">
+                    {errors.published_at_precision}
+                  </span>
+                )}
               </label>
               {field(
                 'published_on',
                 'Ngày công bố (giờ Việt Nam)',
                 post?.published_on,
-                { type: 'date' },
+                { type: 'date', required: true },
               )}
               {field(
                 'published_at',
                 'Thời điểm công bố (ISO 8601)',
                 post?.published_at,
                 {
-                  help: 'Dùng thời điểm có múi giờ; ngày phải khớp giờ Việt Nam.',
+                  required: precision === 'datetime',
+                  help: 'Ví dụ: 2026-11-20T09:00:00+07:00. Ngày phải khớp giờ Việt Nam.',
                 },
               )}
             </div>
@@ -283,6 +507,7 @@ export function PostEditor({
               <ScheduleFields
                 visibleFrom={post?.visible_from ?? null}
                 now={now}
+                error={errors.schedule}
               />
               <button
                 name="intent"
@@ -317,9 +542,16 @@ export function PostEditor({
                 { type: 'url' },
               )}
               <label>
-                Trạng thái học bổng
+                <span>
+                  Trạng thái học bổng
+                  <span className="admin-required" aria-hidden="true">
+                    {' '}
+                    *
+                  </span>
+                </span>
                 <select
                   name="scholarship_status"
+                  required
                   defaultValue={scholarship?.lifecycle_status ?? 'upcoming'}
                 >
                   <option value="upcoming">Sắp mở</option>
@@ -362,9 +594,16 @@ export function PostEditor({
                 { type: 'url' },
               )}
               <label>
-                Trạng thái sự kiện
+                <span>
+                  Trạng thái sự kiện
+                  <span className="admin-required" aria-hidden="true">
+                    {' '}
+                    *
+                  </span>
+                </span>
                 <select
                   name="event_status"
+                  required
                   defaultValue={event?.lifecycle_status ?? 'upcoming'}
                 >
                   <option value="upcoming">Sắp diễn ra</option>
@@ -375,33 +614,32 @@ export function PostEditor({
             </div>
           </fieldset>
         )}
-        <fieldset disabled={!writesEnabled || busy || !editable}>
+        <fieldset
+          disabled={!writesEnabled || navigation.state !== 'idle' || !editable}
+        >
           <legend>Ảnh bìa và thư viện</legend>
-          <p>
-            Chọn đường dẫn ảnh có sẵn trong{' '}
-            <Link to="/admin/media" target="_blank" rel="noopener">
-              thư viện ảnh
-            </Link>
-            . Ảnh mới được giữ riêng tư cho đến khi bài hiển thị công khai; khi
-            ẩn bài, ảnh riêng tư ngừng được phục vụ. Ảnh công khai cũ vẫn có URL
-            công khai.
-          </p>
+          <MediaUpload
+            disabled={
+              !writesEnabled || navigation.state !== 'idle' || !editable
+            }
+            onBusyChange={setUploading}
+            onUploaded={(uploadedPath) => {
+              setMedia((current) => [
+                ...current,
+                {
+                  ...mediaReference(`draft-media/${uploadedPath}`),
+                  alt_text: '',
+                  width: null,
+                  height: null,
+                  is_cover: current.length === 0,
+                },
+              ]);
+              setDirty(true);
+            }}
+          />
+          <p>Ảnh tải lên sẽ tự động đính kèm. Lưu bài viết để áp dụng.</p>
           <div className="admin-attach">
-            <label>
-              Đường dẫn ảnh
-              <input
-                list="media-choices"
-                value={path}
-                onChange={(event) => setPath(event.target.value)}
-                maxLength={512}
-                placeholder="admin/ten-anh.png"
-              />
-              <datalist id="media-choices">
-                {choices.map((choice) => (
-                  <option key={choice} value={choice} />
-                ))}
-              </datalist>
-            </label>
+            <MediaLibraryPicker value={path} onChange={setPath} />
             <button
               type="button"
               onClick={() => {
@@ -442,6 +680,11 @@ export function PostEditor({
             </button>
           </div>
           {mediaError && <p role="alert">{mediaError}</p>}
+          {errors.media && (
+            <p className="admin-field-error" role="alert">
+              {errors.media}
+            </p>
+          )}
           {!media.length && <p>Chưa có ảnh đính kèm.</p>}
           <ol className="admin-attached">
             {media.map((item, index) => (
@@ -449,7 +692,7 @@ export function PostEditor({
                 <img
                   src={
                     item.bucket === 'draft-media'
-                      ? mediaPreviewUrl(item.bucket, item.storage_path)
+                      ? `${mediaPreviewUrl(item.bucket, item.storage_path)}&width=320`
                       : `${mediaBaseUrl}/${item.storage_path.split('/').map(encodeURIComponent).join('/')}`
                   }
                   alt=""
@@ -557,7 +800,7 @@ export function PostEditor({
             </button>
           )}
         </div>
-        {busy && <p role="status">Đang lưu bài viết…</p>}
+        {navigation.state !== 'idle' && <p role="status">Đang lưu bài viết…</p>}
       </Form>
       {post && dirty && (
         <p role="status">

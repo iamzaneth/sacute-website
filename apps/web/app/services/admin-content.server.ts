@@ -1,5 +1,7 @@
+import { ImageWorkBusyError } from './image-work.server';
 import {
   postSelection,
+  queryRPCEnabled,
   SupabaseContentRepository,
 } from '@sacute/shared/content';
 import {
@@ -130,19 +132,47 @@ export class AdminContentRepository {
       );
     return row;
   }
-  async counts() {
+  async counts(): Promise<Record<string, number>> {
+    if (queryRPCEnabled()) {
+      const result = await this.db.rpc('sacute_admin_counts');
+      const counts = check(result);
+      if (!counts || typeof counts !== 'object' || Array.isArray(counts))
+        throw new AdminDataError('Invalid counts');
+      return Object.fromEntries(
+        lifecycleStates.map((status) => {
+          const count = counts[status] ?? 0;
+          if (!Number.isSafeInteger(count) || count < 0)
+            throw new AdminDataError('Invalid count');
+          return [status, count];
+        }),
+      );
+    }
     const now = await this.now();
     const result = await Promise.all(
-      lifecycleStates.map((status) =>
-        this.list(
-          new Request(`http://cms.local/admin/posts?status=${status}`),
-          now,
-        ),
-      ),
+      lifecycleStates.map(async (status) => {
+        let query = this.db
+          .from('posts')
+          .select('id', { count: 'exact', head: true });
+        query =
+          status === 'trashed'
+            ? query.not('deleted_at', 'is', null)
+            : query.is('deleted_at', null);
+        if (status === 'scheduled')
+          query = query
+            .eq('status', 'published')
+            .gt('visible_from', now.toISOString());
+        else if (status === 'published')
+          query = query
+            .eq('status', 'published')
+            .or(`visible_from.is.null,visible_from.lte.${now.toISOString()}`);
+        else if (status !== 'trashed') query = query.eq('status', status);
+        const result = await query;
+        check(result);
+        if (result.count === null) throw new AdminDataError('Missing count');
+        return [status, result.count];
+      }),
     );
-    return Object.fromEntries(
-      lifecycleStates.map((status, i) => [status, result[i].total]),
-    );
+    return Object.fromEntries(result);
   }
   async media(prefix = '', page = 1, bucket: string = 'draft-media') {
     if (
@@ -176,34 +206,6 @@ export class AdminContentRepository {
       page,
       hasMore: objects.length > 50,
     };
-  }
-  async mediaChoices() {
-    const rows =
-      check(
-        await this.db
-          .from('post_media')
-          .select('bucket,storage_path')
-          .order('storage_path')
-          .limit(500),
-      ) ?? [];
-    const uploaded =
-      check(
-        await this.db.storage.from('draft-media').list('admin', {
-          limit: 500,
-          sortBy: { column: 'created_at', order: 'desc' },
-        }),
-      ) ?? [];
-    return [
-      ...new Set([
-        ...rows.map(
-          (r: { bucket: string; storage_path: string }) =>
-            `${r.bucket}/${r.storage_path}`,
-        ),
-        ...uploaded
-          .filter((r) => r.id)
-          .map((r) => `draft-media/admin/${r.name}`),
-      ]),
-    ];
   }
 }
 export async function savePostAction(
@@ -394,7 +396,11 @@ export async function uploadImage(context: AdminContext, file: File) {
   let image;
   try {
     image = await normalizeImage(file);
-  } catch {
+  } catch (error) {
+    if (error instanceof ImageWorkBusyError)
+      throw new AdminDataError(
+        'Hệ thống đang xử lý nhiều ảnh. Vui lòng thử lại sau.',
+      );
     throw new ValidationError({
       file: 'Ảnh không hợp lệ hoặc vượt giới hạn 3 MiB / 16 triệu điểm ảnh.',
     });

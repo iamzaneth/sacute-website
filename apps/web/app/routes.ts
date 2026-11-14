@@ -9,6 +9,7 @@ export default [
     route('posts/:id/edit', 'routes/admin-post-edit.tsx'),
     route('media', 'routes/admin-media.tsx'),
     route('media/file', 'routes/admin-media-file.ts'),
+    route('media/choices', 'routes/admin-media-choices.ts'),
   ]),
   route('media/posts/:id/:mediaId', 'routes/public-media.ts'),
   route('resources/content', 'routes/public-content.ts'),

@@ -17,9 +17,11 @@ import {
 export function ScheduleFields({
   visibleFrom = null,
   now,
+  error,
 }: {
   visibleFrom?: string | null;
   now: string;
+  error?: string;
 }) {
   const initial = scheduleFields(visibleFrom);
   const [day, setDay] = useState(initial.date),
@@ -38,25 +40,42 @@ export function ScheduleFields({
   return (
     <div className="admin-fields admin-schedule">
       <label>
-        Ngày đăng
+        <span>
+          Ngày đăng{' '}
+          <span className="admin-required" aria-hidden="true">
+            *
+          </span>
+        </span>
         <input
           type="date"
           name="schedule_date"
+          aria-invalid={Boolean(error)}
           value={day}
           onChange={(e) => setDay(e.target.value)}
         />
       </label>
       <label>
-        Giờ đăng
+        <span>
+          Giờ đăng{' '}
+          <span className="admin-required" aria-hidden="true">
+            *
+          </span>
+        </span>
         <input
           type="time"
           name="schedule_time"
+          aria-invalid={Boolean(error)}
           value={time}
           onChange={(e) => setTime(e.target.value)}
         />
       </label>
       <label>
-        Múi giờ
+        <span>
+          Múi giờ{' '}
+          <span className="admin-required" aria-hidden="true">
+            *
+          </span>
+        </span>
         <select
           name="timezone"
           value={zone}
@@ -83,6 +102,11 @@ export function ScheduleFields({
         </select>
       </label>
       <p role="status">{preview}</p>
+      {error && (
+        <p className="admin-field-error" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -113,13 +137,34 @@ export function LifecycleControls({
   const [selected, setSelected] = useState<LifecycleAction>(
     choices[0] ?? 'restore_trash',
   );
+  const [scheduleError, setScheduleError] = useState('');
   return (
     <details className="admin-lifecycle">
       <summary>Thao tác với bài viết</summary>
       <Form
         method="post"
         action="/admin/posts"
+        onChange={() => setScheduleError('')}
         onSubmit={(e) => {
+          if (selected === 'schedule' || selected === 'reschedule') {
+            const form = new FormData(e.currentTarget);
+            try {
+              const instant = scheduleInstant(
+                String(form.get('schedule_date') ?? ''),
+                String(form.get('schedule_time') ?? ''),
+                String(form.get('timezone') ?? ''),
+              );
+              if (Date.parse(instant) <= Date.now()) throw new Error();
+            } catch {
+              e.preventDefault();
+              setScheduleError(
+                'Chọn đủ ngày, giờ và múi giờ hợp lệ. Thời điểm hẹn đăng phải ở tương lai.',
+              );
+              const input = e.currentTarget.elements.namedItem('schedule_date');
+              if (input instanceof HTMLElement) input.focus();
+              return;
+            }
+          }
           const message = lifecycleConfirmations[selected];
           if (message && !window.confirm(message)) e.preventDefault();
         }}
@@ -145,7 +190,11 @@ export function LifecycleControls({
             </select>
           </label>
           {(selected === 'schedule' || selected === 'reschedule') && (
-            <ScheduleFields visibleFrom={post.visible_from} now={now} />
+            <ScheduleFields
+              visibleFrom={post.visible_from}
+              now={now}
+              error={scheduleError}
+            />
           )}
           <button type="submit">{lifecycleActionLabels[selected]}</button>
         </fieldset>

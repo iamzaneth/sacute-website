@@ -1,3 +1,5 @@
+import { Plus, FileText, SearchX } from 'lucide-react';
+import { adminMutation } from '../services/admin-cache.server';
 import { lifecycleLabels, formatSchedule } from '@sacute/shared';
 import { useToastFeedback } from '../components/toast/toast';
 import { LifecycleControls } from '../features/admin/lifecycle-controls';
@@ -25,13 +27,17 @@ export async function loader({
   context: requestContext,
 }: Route.LoaderArgs) {
   const context = await requireAdmin(request, requestContext);
-  return adminRead(context, async () => ({
-    ...(await new AdminContentRepository(context.db).list(request)),
-    writesEnabled: context.writesEnabled,
-  }));
+  return adminRead(
+    context,
+    async () => ({
+      ...(await new AdminContentRepository(context.db).list(request)),
+      writesEnabled: context.writesEnabled,
+    }),
+    new URL(request.url).pathname + new URL(request.url).search,
+  );
 }
 export const action = ({ request, context }: Route.ActionArgs) =>
-  lifecycleAction(request, context);
+  adminMutation(() => lifecycleAction(request, context));
 export const kindLabels: Record<string, string> = {
   information: 'Thông tin',
   scholarship: 'Học bổng',
@@ -61,10 +67,16 @@ export default function AdminPosts() {
   return (
     <>
       <div className="admin-title">
-        <h1>Bài viết</h1>
+        <div>
+          <p className="admin-eyebrow">NỘI DUNG</p>
+          <h1>Bài viết</h1>
+          <p className="admin-description">
+            Biên tập, lên lịch và quản lý các bài viết của SACUTE.
+          </p>
+        </div>
         {state.writesEnabled ? (
           <Link className="button button-primary" to="/admin/posts/new">
-            Tạo bài viết
+            <Plus size={18} /> Tạo bài viết
           </Link>
         ) : (
           <button disabled>Tạo bài viết</button>
@@ -75,10 +87,32 @@ export default function AdminPosts() {
           {Object.values(result.errors).join(' ')}
         </p>
       )}
+      <nav className="admin-status-tabs" aria-label="Trạng thái bài viết">
+        {Object.entries({ '': 'Tất cả', ...statusLabels }).map(
+          ([status, label]) => {
+            const next = new URLSearchParams({
+              q: state.q,
+              kind: state.kind,
+              status,
+            });
+            return (
+              <Link
+                key={status}
+                to={`/admin/posts?${next}`}
+                aria-current={state.status === status ? 'page' : undefined}
+              >
+                {label}
+              </Link>
+            );
+          },
+        )}
+      </nav>
       <Form method="get" className="admin-filters">
         <label>
           Tìm tiêu đề
           <input
+            key={state.q}
+            placeholder="Nhập tiêu đề bài viết…"
             name="q"
             defaultValue={state.q}
             maxLength={200}
@@ -87,7 +121,7 @@ export default function AdminPosts() {
         </label>
         <label>
           Loại bài
-          <select name="kind" defaultValue={state.kind}>
+          <select key={state.kind} name="kind" defaultValue={state.kind}>
             <option value="">Tất cả</option>
             {Object.entries(kindLabels).map(([key, label]) => (
               <option key={key} value={key}>
@@ -98,7 +132,7 @@ export default function AdminPosts() {
         </label>
         <label>
           Trạng thái
-          <select name="status" defaultValue={state.status}>
+          <select key={state.status} name="status" defaultValue={state.status}>
             <option value="">Tất cả</option>
             {Object.entries(statusLabels).map(([key, label]) => (
               <option key={key} value={key}>
@@ -109,7 +143,10 @@ export default function AdminPosts() {
         </label>
         <button disabled={navigation.state !== 'idle'}>Lọc bài viết</button>
       </Form>
-      <p role="status">{state.total} bài viết</p>
+      <p role="status" className="admin-result-count">
+        <FileText size={16} />
+        {state.total} bài viết
+      </p>
       {state.posts.length ? (
         <div className="admin-table-wrap">
           <table className="admin-table">
@@ -126,7 +163,12 @@ export default function AdminPosts() {
               {state.posts.map((post) => (
                 <tr key={post.id}>
                   <td>
-                    {post.title}
+                    <Link
+                      className="admin-post-title"
+                      to={`/admin/posts/${post.id}/edit`}
+                    >
+                      {post.title}
+                    </Link>
                     <small>Danh mục: {post.category}</small>
                     <small>/{post.slug}</small>
                   </td>
@@ -167,9 +209,12 @@ export default function AdminPosts() {
           </table>
         </div>
       ) : (
-        <p className="admin-card">
-          Không có bài viết phù hợp. Thử thay đổi bộ lọc.
-        </p>
+        <div className="admin-card admin-empty">
+          <SearchX size={32} />
+          <h2>Chưa có bài viết phù hợp</h2>
+          <p>Thử từ khóa khác hoặc bỏ bớt bộ lọc.</p>
+          <Link to="/admin/posts">Xem tất cả bài viết</Link>
+        </div>
       )}
       <nav className="admin-pagination" aria-label="Phân trang bài viết">
         {state.page > 1 && (

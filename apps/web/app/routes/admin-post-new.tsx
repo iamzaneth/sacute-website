@@ -1,3 +1,4 @@
+import { adminMutation } from '../services/admin-cache.server';
 import { useActionData, useLoaderData } from 'react-router';
 import { PostEditor } from '../features/admin/post-editor';
 import {
@@ -17,7 +18,6 @@ export async function loader({
 }: Route.LoaderArgs) {
   const context = await requireAdmin(request, requestContext);
   return adminRead(context, async () => ({
-    choices: await new AdminContentRepository(context.db).mediaChoices(),
     now: (await new AdminContentRepository(context.db).now()).toISOString(),
     mediaBaseUrl: context.db.storage
       .from('post-media')
@@ -29,7 +29,8 @@ export async function loader({
 export const action = ({
   request,
   context: requestContext,
-}: Route.ActionArgs) => savePostAction(request, null, requestContext);
+}: Route.ActionArgs) =>
+  adminMutation(() => savePostAction(request, null, requestContext));
 export default function AdminPostNew() {
   const state = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();

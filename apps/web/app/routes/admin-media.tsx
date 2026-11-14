@@ -1,3 +1,5 @@
+import { adminMutation } from '../services/admin-cache.server';
+import { MediaUpload } from '../features/admin/media-upload';
 import {
   Form,
   Link,
@@ -37,7 +39,7 @@ export async function loader({
     writesEnabled: context.writesEnabled,
   }));
 }
-export async function action({
+async function handleAction({
   request,
   context: requestContext,
 }: Route.ActionArgs) {
@@ -115,6 +117,8 @@ export async function action({
     );
   }
 }
+export const action = (args: Route.ActionArgs) =>
+  adminMutation(() => handleAction(args));
 export default function AdminMedia() {
   const state = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
@@ -129,7 +133,15 @@ export default function AdminMedia() {
     `/admin/media?${new URLSearchParams({ prefix, page: String(page), bucket: state.bucket })}`;
   return (
     <>
-      <h1>Thư viện ảnh</h1>
+      <div className="admin-title">
+        <div>
+          <p className="admin-eyebrow">TÀI NGUYÊN</p>
+          <h1>Thư viện ảnh</h1>
+          <p className="admin-description">
+            Chuẩn bị hình ảnh cho những câu chuyện của SACUTE.
+          </p>
+        </div>
+      </div>
       <nav aria-label="Kho ảnh" className="admin-breadcrumbs">
         <Link to="/admin/media?bucket=draft-media">Ảnh riêng tư</Link>
         <Link to="/admin/media?bucket=post-media">Ảnh đã công bố</Link>
@@ -144,35 +156,7 @@ export default function AdminMedia() {
           <Link to={pageURL('admin')}>Mở thư mục ảnh CMS</Link>
         </p>
       )}
-      <Form
-        method="post"
-        encType="multipart/form-data"
-        className="admin-card admin-upload"
-      >
-        <input type="hidden" name="intent" value="upload" />
-        <label>
-          Chọn ảnh
-          <input
-            type="file"
-            name="file"
-            accept="image/png,image/jpeg,image/webp"
-            required
-            disabled={!state.writesEnabled || busy}
-          />
-        </label>
-        <button
-          className="button button-primary"
-          disabled={!state.writesEnabled || busy}
-        >
-          Tải ảnh lên
-        </button>
-        {busy && navigation.formData?.get('intent') === 'upload' && (
-          <div role="status">
-            <progress aria-label="Đang tải ảnh lên" />
-            <span>Đang tải và xác nhận lưu ảnh…</span>
-          </div>
-        )}
-      </Form>
+      <MediaUpload disabled={!state.writesEnabled || busy} />
       <nav className="admin-breadcrumbs" aria-label="Thư mục ảnh">
         <Link to={pageURL('')}>Tất cả thư mục</Link>
         <Link to={pageURL(`admin`)}>Ảnh CMS</Link>
@@ -193,7 +177,12 @@ export default function AdminMedia() {
                 <Link to={pageURL(object.path)}>📁 {object.name}</Link>
               ) : (
                 <>
-                  <img src={object.url!} alt={object.name} loading="lazy" />
+                  <img
+                    src={`${object.url!}&width=320`}
+                    decoding="async"
+                    alt={object.name}
+                    loading="lazy"
+                  />
                   <p>{object.name}</p>
                   <label>
                     Đường dẫn để đính kèm
