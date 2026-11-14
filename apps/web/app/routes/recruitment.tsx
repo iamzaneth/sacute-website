@@ -1,7 +1,7 @@
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { SectionHeading } from '../components/ui';
-import { BrandLogo, BrandLogo2 } from '../components/brand';
+import { BrandLogo2 } from '../components/brand';
 import { ProcessSteps } from '../features/recruitment/process-steps';
 import { TeamExplorer } from '../features/recruitment/team-explorer';
 import { pageMeta } from '../lib/seo';
